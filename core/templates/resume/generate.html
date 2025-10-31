@@ -28,7 +28,7 @@
 
     <!-- Resume Generation Form -->
     <div class="bg-white rounded-xl shadow-sm p-6 mb-6">
-        <form method="post" id="generateForm" x-data="{ generating: false, step: 1 }">
+    <form method="post" id="generateForm" x-data="{ generating: false, step: 1 }">
             {% csrf_token %}
             
             <!-- Step Indicator -->
@@ -38,62 +38,18 @@
                         <div :class="step >= 1 ? 'bg-purple-600 text-white' : 'bg-gray-200 text-gray-600'" class="w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-colors">1</div>
                         <div class="flex-1 h-1 mx-4" :class="step >= 2 ? 'bg-purple-600' : 'bg-gray-200'"></div>
                     </div>
-                    <div class="flex items-center flex-1">
-                        <div :class="step >= 2 ? 'bg-purple-600 text-white' : 'bg-gray-200 text-gray-600'" class="w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-colors">2</div>
-                        <div class="flex-1 h-1 mx-4" :class="step >= 3 ? 'bg-purple-600' : 'bg-gray-200'"></div>
-                    </div>
                     <div class="flex items-center">
-                        <div :class="step >= 3 ? 'bg-purple-600 text-white' : 'bg-gray-200 text-gray-600'" class="w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-colors">3</div>
+                        <div :class="step >= 2 ? 'bg-purple-600 text-white' : 'bg-gray-200 text-gray-600'" class="w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-colors">2</div>
                     </div>
                 </div>
                 <div class="flex justify-between mt-2 text-sm text-gray-600">
-                    <span>Template</span>
                     <span>Customize</span>
                     <span>Generate</span>
                 </div>
             </div>
 
-            <!-- Step 1: Template Selection -->
+            <!-- Step 1: Customization -->
             <div x-show="step === 1" x-transition>
-                <h3 class="text-lg font-semibold text-gray-900 mb-4">Select Resume Template</h3>
-                
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                    <label class="relative cursor-pointer">
-                        <input type="radio" name="template" value="professional" checked class="peer sr-only">
-                        <div class="border-2 border-gray-200 peer-checked:border-purple-600 peer-checked:bg-purple-50 rounded-lg p-6 transition-all hover:border-gray-300">
-                            <div class="flex items-start">
-                                <i class="fas fa-file-alt text-2xl text-purple-600 mt-1"></i>
-                                <div class="ml-4">
-                                    <h4 class="font-semibold text-gray-900">Professional</h4>
-                                    <p class="text-sm text-gray-600 mt-1">Clean, modern design optimized for ATS systems</p>
-                                    <p class="text-xs text-gray-500 mt-2">Best for: Tech, Finance, Corporate roles</p>
-                                </div>
-                            </div>
-                        </div>
-                    </label>
-
-                    <label class="relative cursor-pointer">
-                        <input type="radio" name="template" value="academic" class="peer sr-only">
-                        <div class="border-2 border-gray-200 peer-checked:border-purple-600 peer-checked:bg-purple-50 rounded-lg p-6 transition-all hover:border-gray-300">
-                            <div class="flex items-start">
-                                <i class="fas fa-graduation-cap text-2xl text-indigo-600 mt-1"></i>
-                                <div class="ml-4">
-                                    <h4 class="font-semibold text-gray-900">Academic</h4>
-                                    <p class="text-sm text-gray-600 mt-1">Detailed format with emphasis on education and research</p>
-                                    <p class="text-xs text-gray-500 mt-2">Best for: Research, Academia, PhD positions</p>
-                                </div>
-                            </div>
-                        </div>
-                    </label>
-                </div>
-
-                <button type="button" @click="step = 2" class="btn-gradient w-full">
-                    Continue to Customization
-                </button>
-            </div>
-
-            <!-- Step 2: Customization -->
-            <div x-show="step === 2" x-transition>
                 <h3 class="text-lg font-semibold text-gray-900 mb-4">Customize Resume Content</h3>
                 
                 <div class="space-y-6">
@@ -147,18 +103,15 @@
                     </div>
                 </div>
 
-                <div class="flex gap-3 mt-6">
-                    <button type="button" @click="step = 1" class="flex-1 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                        Back
-                    </button>
-                    <button type="button" @click="step = 3" class="flex-1 btn-gradient">
+                <div class="flex justify-end mt-6">
+                    <button type="button" @click="step = 2" class="btn-gradient px-6 py-3">
                         Continue to Generate
                     </button>
                 </div>
             </div>
 
-            <!-- Step 3: Generate -->
-            <div x-show="step === 3" x-transition>
+            <!-- Step 2: Generate -->
+            <div x-show="step === 2" x-transition>
                 <h3 class="text-lg font-semibold text-gray-900 mb-4">Ready to Generate</h3>
                 
                 <div class="bg-purple-50 border border-purple-200 rounded-lg p-6 mb-6">
@@ -178,7 +131,7 @@
 
                 <div x-show="!generating">
                     <div class="flex gap-3">
-                        <button type="button" @click="step = 2" class="flex-1 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                        <button type="button" @click="step = 1" class="flex-1 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
                             Back
                         </button>
                         <button type="submit" @click="generating = true" class="flex-1 btn-gradient">

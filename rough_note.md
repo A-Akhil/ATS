@@ -285,6 +285,7 @@ ats_checker/              # Django project
 - Added vertical scrolling to each dataset table in the Platform Data Viewer so large collections remain manageable within the page.
 - Added per-user "View Details" modals that surface the full profile (contact info, education, experience, projects, certifications, publications, achievements, leadership) without leaving the data viewer.
 - Expanded job description cells to provide full text inside a scrollable container, preventing truncated qualification blurbs.
+- Simplified the resume generation wizard by removing the unused template selection step so the flow now covers customization and generation only, aligning with the single available LaTeX template.
 
 ## Task Notes (2025-11-02)
 
