@@ -6,6 +6,7 @@ from django.http import HttpResponse, JsonResponse, FileResponse
 from django.conf import settings
 from django.views.decorators.http import require_http_methods
 from django.db.models import Q
+from django.core.files.base import ContentFile
 import json
 from datetime import datetime
 import PyPDF2
@@ -396,7 +397,6 @@ def generate_resume(request):
             
             if pdf_result['success']:
                 pdf_path = f'resumes/resume_{resume.id}.pdf'
-                from django.core.files.base import ContentFile
                 resume.pdf_file.save(pdf_path, ContentFile(pdf_result['pdf_content']))
                 resume.save()
                 
@@ -455,32 +455,74 @@ def match_job(request):
     resumes_count = resumes.count()
     recent_matches = request.user.match_attempts.all()[:5]
     total_matches = request.user.match_attempts.count()
+    upload_form = ResumeUploadForm()
     print(f"[MATCH VIEW] Resumes available: {resumes_count}")
     
     if request.method == 'POST':
         print(f"[MATCH POST] Keys received: {list(request.POST.keys())}")
+        resume_mode = request.POST.get('resume_mode', 'existing')
+        if resume_mode == 'upload':
+            upload_form = ResumeUploadForm(request.POST, request.FILES)
         resume_id = request.POST.get('resume_id')
         jd_title = request.POST.get('jd_title') or request.POST.get('job_title') or 'Untitled Position'
         jd_text = request.POST.get('jd_text') or request.POST.get('job_description') or ''
         job_url = request.POST.get('job_url', '').strip()
         company = request.POST.get('company', '').strip()
         
-        if not resume_id:
-            messages.error(request, 'Please select a resume to match against.')
-            print('[MATCH POST] Missing resume_id; redirecting back to form')
-            return redirect('match_job')
+        resume = None
+        if resume_mode == 'existing':
+            if not resume_id:
+                messages.error(request, 'Please select a resume to match against or switch to the upload option.')
+                print('[MATCH POST] Missing resume_id; redirecting back to form')
+                return redirect('match_job')
+            resume = get_object_or_404(Resume, id=resume_id, user=request.user)
+            print(f"[MATCH] Using saved resume: {resume.filename}")
+        else:
+            if not upload_form.is_valid():
+                error_messages = upload_form.errors.get('resume_file') or ['Please upload a valid PDF resume.']
+                messages.error(request, error_messages[0])
+                print(f"[MATCH POST] Upload form invalid: {error_messages}")
+                return redirect('match_job')
+
+            uploaded_file = upload_form.cleaned_data['resume_file']
+            uploaded_bytes = uploaded_file.read()
+            try:
+                pdf_reader = PyPDF2.PdfReader(io.BytesIO(uploaded_bytes))
+                extracted_text = ''.join((page.extract_text() or '') for page in pdf_reader.pages)
+            except Exception as exc:
+                messages.error(request, 'Could not read the uploaded PDF. Please ensure it is not password-protected and try again.')
+                print(f"[MATCH POST] PDF extraction failed: {exc}")
+                return redirect('match_job')
+
+            if not extracted_text.strip():
+                messages.error(request, 'Unable to extract text from the uploaded PDF. Please upload a text-based resume (not a scanned image).')
+                print('[MATCH POST] Uploaded PDF had no extractable text')
+                return redirect('match_job')
+
+            parsed_sections = nlp_service.parse_resume_sections(extracted_text)
+            resume = Resume.objects.create(
+                user=request.user,
+                source_type='uploaded',
+                filename=uploaded_file.name,
+                parsed_text=extracted_text,
+                parsed_sections=parsed_sections
+            )
+
+            resume_filename = f"uploaded_resume_{resume.id}.pdf"
+            resume.pdf_file.save(resume_filename, ContentFile(uploaded_bytes))
+            resume.save()
+
+            log_action(request.user, 'upload_resume', {'resume_id': resume.id, 'filename': uploaded_file.name}, request)
+            print(f"[MATCH] Uploaded resume stored: {resume.filename} (ID: {resume.id})")
         
         if not jd_text:
             messages.error(request, 'Provide a job description (pasted text) before analyzing. URL scraping is not yet implemented.')
             print('[MATCH POST] Missing job description text; redirecting back to form')
             return redirect('match_job')
         
-        print(f"[MATCH START] Resume ID: {resume_id}, JD Title: {jd_title}, Company: {company}")
+        print(f"[MATCH START] Resume ID: {resume.id}, JD Title: {jd_title}, Company: {company}")
         if job_url:
             print(f"[MATCH POST] Job URL provided: {job_url} (currently unused)")
-        
-        resume = get_object_or_404(Resume, id=resume_id, user=request.user)
-        print(f"[MATCH] Resume found: {resume.filename}")
         
         jd = JobDescription.objects.create(
             user=request.user,
@@ -539,6 +581,8 @@ def match_job(request):
         'resumes': resumes,
         'recent_matches': recent_matches,
         'total_matches': total_matches,
+        'upload_form': upload_form,
+        'default_resume_mode': 'existing' if resumes_count else 'upload',
     }
     return render(request, 'match/match.html', context)
 

@@ -287,6 +287,32 @@ ats_checker/              # Django project
 - Expanded job description cells to provide full text inside a scrollable container, preventing truncated qualification blurbs.
 - Simplified the resume generation wizard by removing the unused template selection step so the flow now covers customization and generation only, aligning with the single available LaTeX template.
 
+## Task Notes (2025-10-31) - Resume Upload Option for Matching
+
+### Goals
+- Allow users to run match analysis using an externally prepared resume PDF without having to generate one in the app first.
+
+### Observations
+- `match_job` currently requires an existing `Resume` record selected via dropdown; form lacks file upload handling.
+- `ResumeUploadForm` already exists with PDF validation but is unused in the flow.
+- `match/match.html` form lacks `enctype` for file uploads and Alpine state to toggle upload vs existing selection.
+- `MatchAttempt` requires a `Resume` FK, so uploaded files should persist as `Resume` entries (source `uploaded`).
+- PDF text extraction utilities (PyPDF2) are already imported in `core/views.py`, so reuse is practical.
+
+### Plan
+1. Update `match_job` view to accept either an existing resume selection or a freshly uploaded PDF using `ResumeUploadForm`.
+2. If upload selected, extract text via `PyPDF2`, create a `Resume` record (`source_type='uploaded'`), store file, and parse sections before scoring.
+3. Refresh `match/match.html` to add a toggle between "Use Saved Resume" and "Upload PDF", include the file input (with proper `enctype`), and adjust required attributes.
+4. Pass an instance of `ResumeUploadForm` to the template for rendering, and surface validation/parse failures via Django messages.
+5. Log the upload action and ensure match scoring proceeds with the newly created resume entry.
+
+### Open Questions
+- Should we expose uploaded resumes in the resume list UI? (Out of scope for now; can revisit after basic upload path is confirmed.)
+
+### Progress
+- Extended `match_job` to branch on resume source, validate uploads through `ResumeUploadForm`, extract PDF text, persist uploaded resumes, and reuse the scoring pipeline.
+- Introduced a resume source toggle plus file input in `match/match.html`, updated form attributes for multipart posts, and surfaced guidance for upload requirements.
+
 ## Task Notes (2025-11-02)
 
 ### Goals

@@ -28,8 +28,9 @@
 
     <!-- Job Description Input -->
     <div class="bg-white rounded-xl shadow-sm p-6 mb-6">
-        <form method="post" x-data="{ inputMethod: 'paste', analyzing: false }" @submit="analyzing = true">
+        <form method="post" enctype="multipart/form-data" x-data="{ inputMethod: 'paste', resumeMode: '{{ default_resume_mode }}', analyzing: false }" @submit="analyzing = true">
             {% csrf_token %}
+            <input type="hidden" name="resume_mode" :value="resumeMode">
             
             <h3 class="text-lg font-semibold text-gray-900 mb-4">Enter Job Description</h3>
 
@@ -65,19 +66,50 @@
 
             <!-- Resume Selector -->
             <div class="mt-6">
-                <label class="block text-sm font-medium text-gray-700">Select Resume *</label>
-                {% if resumes %}
-                    <select name="resume_id" required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                        <option value="" disabled selected>Select a resume</option>
-                        {% for resume in resumes %}
-                            <option value="{{ resume.id }}">{{ resume.filename }} ({{ resume.created_at|date:"M d, Y" }})</option>
-                        {% endfor %}
-                    </select>
-                {% else %}
-                    <div class="mt-2 rounded-md border border-amber-300 bg-amber-50 p-4">
-                        <p class="text-sm text-amber-800">You need at least one generated resume before running a match. Create a resume first, then return here.</p>
-                    </div>
-                {% endif %}
+                <label class="block text-sm font-medium text-gray-700">Resume Source *</label>
+                <div class="flex gap-2 mt-2">
+                    <button type="button"
+                            @click="if ({{ resumes|length }} > 0) resumeMode = 'existing'"
+                            :class="resumeMode === 'existing' ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
+                            :disabled="{{ resumes|length }} === 0"
+                            class="flex-1 px-4 py-2 rounded-lg transition-colors font-medium">
+                        <i class="fas fa-folder-open mr-2"></i>
+                        Use Saved Resume
+                    </button>
+                    <button type="button"
+                            @click="resumeMode = 'upload'"
+                            :class="resumeMode === 'upload' ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
+                            class="flex-1 px-4 py-2 rounded-lg transition-colors font-medium">
+                        <i class="fas fa-upload mr-2"></i>
+                        Upload PDF
+                    </button>
+                </div>
+
+                <div class="mt-4" x-show="resumeMode === 'existing'" x-transition>
+                    <label class="block text-sm font-medium text-gray-700">Select Resume *</label>
+                    {% if resumes %}
+                        <select name="resume_id" :required="resumeMode === 'existing'" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            <option value="" disabled selected>Select a resume</option>
+                            {% for resume in resumes %}
+                                <option value="{{ resume.id }}">{{ resume.filename }} ({{ resume.created_at|date:"M d, Y" }})</option>
+                            {% endfor %}
+                        </select>
+                    {% else %}
+                        <div class="rounded-md border border-amber-300 bg-amber-50 p-4">
+                            <p class="text-sm text-amber-800">You do not have any saved resumes yet. Upload a PDF or generate one first.</p>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="mt-4" x-show="resumeMode === 'upload'" x-transition>
+                    <label class="block text-sm font-medium text-gray-700">Upload Resume (PDF) *</label>
+                    <input type="file" name="resume_file" accept=".pdf" :required="resumeMode === 'upload'"
+                           class="mt-1 block w-full text-sm text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-600 hover:file:bg-purple-100">
+                    <p class="mt-2 text-xs text-gray-500 flex items-center">
+                        <i class="fas fa-info-circle text-blue-500 mr-2"></i>
+                        Maximum size 5MB. Upload a text-based PDF (not a scanned image). Uploaded resumes are saved to your account for future matches.
+                    </p>
+                </div>
             </div>
 
             <!-- URL Input -->
