@@ -1,0 +1,12 @@
+Django
+python-decouple
+google-genai
+sentence-transformers
+spacy
+scikit-learn
+numpy
+torch
+requests
+PyPDF2
+python-magic
+Pillow

@@ -1,0 +1,217 @@
+{% extends 'base.html' %}
+
+{% block title %}View Resume{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Header -->
+    <div class="mb-8">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">Resume Details</h1>
+                <p class="mt-2 text-sm text-gray-600">
+                    Generated on {{ resume.created_at|date:"F d, Y g:i A" }}
+                </p>
+            </div>
+            <a href="{% url 'dashboard' %}" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                </svg>
+                Back to Dashboard
+            </a>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Main Content -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- PDF Preview Card -->
+            {% if resume.pdf_file %}
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                    <h2 class="text-lg font-semibold text-gray-900">PDF Preview</h2>
+                </div>
+                <div class="p-6">
+                    <div class="aspect-[8.5/11] bg-gray-100 rounded-lg overflow-hidden">
+                        <iframe 
+                            src="{{ resume.pdf_file.url }}" 
+                            class="w-full h-full"
+                            frameborder="0"
+                        ></iframe>
+                    </div>
+                </div>
+            </div>
+            {% elif resume.latex_error %}
+            <!-- Error Display -->
+            <div class="bg-red-50 rounded-lg shadow-sm border border-red-200 p-6">
+                <div class="flex items-start">
+                    <svg class="h-6 w-6 text-red-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <div class="ml-3">
+                        <h3 class="text-lg font-medium text-red-800">PDF Compilation Failed</h3>
+                        <div class="mt-2 text-sm text-red-700">
+                            <p class="mb-2">There was an error compiling your resume to PDF:</p>
+                            <pre class="bg-white border border-red-300 rounded p-3 overflow-x-auto text-xs">{{ resume.latex_error }}</pre>
+                        </div>
+                        <div class="mt-4">
+                            <p class="text-sm text-red-600">You can still download the LaTeX source and try to compile it manually.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <!-- Processing State -->
+            <div class="bg-yellow-50 rounded-lg shadow-sm border border-yellow-200 p-6">
+                <div class="flex items-start">
+                    <svg class="h-6 w-6 text-yellow-600 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                    </svg>
+                    <div class="ml-3">
+                        <h3 class="text-lg font-medium text-yellow-800">Resume Processing</h3>
+                        <p class="mt-2 text-sm text-yellow-700">Your resume is being generated. Please refresh the page in a moment.</p>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- LaTeX Source Card -->
+            {% if resume.latex_source %}
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                    <h2 class="text-lg font-semibold text-gray-900">LaTeX Source Code</h2>
+                </div>
+                <div class="p-6">
+                    <pre class="bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto text-sm"><code>{{ resume.latex_source }}</code></pre>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Sidebar -->
+        <div class="space-y-6">
+            <!-- Actions Card -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                    <h2 class="text-lg font-semibold text-gray-900">Actions</h2>
+                </div>
+                <div class="p-6 space-y-3">
+                    {% if resume.pdf_file %}
+                    <a href="{% url 'resume_download' resume.id %}" 
+                       class="w-full inline-flex items-center justify-center px-4 py-3 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 transition-all">
+                        <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"></path>
+                        </svg>
+                        Download PDF
+                    </a>
+                    {% endif %}
+                    
+                    {% if resume.latex_source %}
+                    <a href="{% url 'resume_latex_download' resume.id %}" 
+                       class="w-full inline-flex items-center justify-center px-4 py-3 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-all">
+                        <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path>
+                        </svg>
+                        Download LaTeX
+                    </a>
+                    {% endif %}
+                    
+                    <a href="{% url 'generate_resume' %}" 
+                       class="w-full inline-flex items-center justify-center px-4 py-3 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-all">
+                        <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                        </svg>
+                        Regenerate Resume
+                    </a>
+                    
+                    {% if resume.pdf_file %}
+                    <a href="{% url 'match_job' %}" 
+                       class="w-full inline-flex items-center justify-center px-4 py-3 border border-green-300 rounded-md shadow-sm text-sm font-medium text-green-700 bg-green-50 hover:bg-green-100 transition-all">
+                        <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        Match with Job
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Info Card -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                    <h2 class="text-lg font-semibold text-gray-900">Resume Info</h2>
+                </div>
+                <div class="p-6 space-y-4">
+                    <div>
+                        <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">Source</p>
+                        <p class="mt-1 text-sm text-gray-900">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                {% if resume.source_type == 'generated' %}bg-blue-100 text-blue-800{% else %}bg-gray-100 text-gray-800{% endif %}">
+                                {{ resume.get_source_type_display }}
+                            </span>
+                        </p>
+                    </div>
+                    
+                    {% if resume.filename %}
+                    <div>
+                        <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">Filename</p>
+                        <p class="mt-1 text-sm text-gray-900 break-all">{{ resume.filename }}</p>
+                    </div>
+                    {% endif %}
+                    
+                    <div>
+                        <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">Created</p>
+                        <p class="mt-1 text-sm text-gray-900">{{ resume.created_at|date:"F d, Y" }}</p>
+                        <p class="text-xs text-gray-500">{{ resume.created_at|date:"g:i A" }}</p>
+                    </div>
+                    
+                    <div>
+                        <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">Status</p>
+                        <p class="mt-1 text-sm">
+                            {% if resume.pdf_file %}
+                                <span class="inline-flex items-center text-green-700">
+                                    <svg class="h-4 w-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    Ready
+                                </span>
+                            {% elif resume.latex_error %}
+                                <span class="inline-flex items-center text-red-700">
+                                    <svg class="h-4 w-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    Error
+                                </span>
+                            {% else %}
+                                <span class="inline-flex items-center text-yellow-700">
+                                    <svg class="h-4 w-4 mr-1 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                                    </svg>
+                                    Processing
+                                </span>
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tips Card -->
+            <div class="bg-blue-50 rounded-lg shadow-sm border border-blue-200 p-6">
+                <div class="flex items-start">
+                    <svg class="h-6 w-6 text-blue-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <div class="ml-3">
+                        <h3 class="text-sm font-medium text-blue-800">Pro Tips</h3>
+                        <ul class="mt-2 text-sm text-blue-700 space-y-1 list-disc list-inside">
+                            <li>Download both PDF and LaTeX for backup</li>
+                            <li>Use "Match with Job" to check ATS compatibility</li>
+                            <li>Regenerate if you updated your profile</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

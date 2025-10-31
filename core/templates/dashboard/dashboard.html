@@ -1,0 +1,129 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900">Welcome back, {{ user.first_name }}!</h1>
+        <p class="text-gray-600 mt-2">Here's your ATS resume overview</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="bg-white rounded-lg shadow p-6 card-hover">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-gray-500 text-sm font-medium">Total Resumes</p>
+                    <p class="text-3xl font-bold text-gray-900 mt-2">{{ resumes|length }}</p>
+                </div>
+                <div class="bg-indigo-100 rounded-full p-3">
+                    <i class="fas fa-file-alt text-indigo-600 text-2xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6 card-hover">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-gray-500 text-sm font-medium">Job Matches</p>
+                    <p class="text-3xl font-bold text-gray-900 mt-2">{{ total_matches }}</p>
+                </div>
+                <div class="bg-green-100 rounded-full p-3">
+                    <i class="fas fa-chart-line text-green-600 text-2xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6 card-hover">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-gray-500 text-sm font-medium">Profile Complete</p>
+                    <p class="text-3xl font-bold text-gray-900 mt-2">
+                        {% if profile.education_entries and profile.skills %}
+                        <i class="fas fa-check-circle text-green-600"></i>
+                        {% else %}
+                        <i class="fas fa-exclamation-circle text-yellow-600"></i>
+                        {% endif %}
+                    </p>
+                </div>
+                <div class="bg-purple-100 rounded-full p-3">
+                    <i class="fas fa-user text-purple-600 text-2xl"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-xl font-semibold mb-4">Quick Actions</h2>
+            <div class="space-y-3">
+                <a href="{% url 'generate_resume' %}" class="block p-4 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-lg hover:shadow-lg transition">
+                    <i class="fas fa-magic mr-2"></i> Generate New Resume
+                </a>
+                <a href="{% url 'match_job' %}" class="block p-4 bg-gradient-to-r from-green-500 to-teal-600 text-white rounded-lg hover:shadow-lg transition">
+                    <i class="fas fa-search mr-2"></i> Match with Job
+                </a>
+                <a href="{% url 'profile' %}" class="block p-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg hover:shadow-lg transition">
+                    <i class="fas fa-edit mr-2"></i> Update Profile
+                </a>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-xl font-semibold mb-4">Recent Matches</h2>
+            {% if recent_matches %}
+            <div class="space-y-3">
+                {% for match in recent_matches %}
+                <a href="{% url 'match_result' match.id %}" class="block p-4 border border-gray-200 rounded-lg hover:border-indigo-300 hover:shadow transition">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <p class="font-medium text-gray-900">{{ match.job_description.title }}</p>
+                            <p class="text-sm text-gray-500">{{ match.created_at|date:"M d, Y" }}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-2xl font-bold {% if match.final_score >= 70 %}text-green-600{% elif match.final_score >= 50 %}text-yellow-600{% else %}text-red-600{% endif %}">
+                                {{ match.final_score|floatformat:0 }}%
+                            </p>
+                        </div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-gray-500 text-center py-8">No matches yet. Try matching your resume with a job!</p>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if resumes %}
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-xl font-semibold mb-4">Your Resumes</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {% for resume in resumes %}
+            <div class="border border-gray-200 rounded-lg p-4 hover:border-indigo-300 hover:shadow transition">
+                <div class="flex items-start justify-between mb-2">
+                    <div class="flex-1">
+                        <p class="font-medium text-gray-900">{{ resume.filename|truncatechars:30 }}</p>
+                        <p class="text-sm text-gray-500">{{ resume.created_at|date:"M d, Y" }}</p>
+                    </div>
+                    <span class="px-2 py-1 text-xs font-medium rounded {% if resume.source_type == 'generated' %}bg-green-100 text-green-800{% else %}bg-blue-100 text-blue-800{% endif %}">
+                        {{ resume.source_type|title }}
+                    </span>
+                </div>
+                <div class="flex space-x-2 mt-3">
+                    <a href="{% url 'resume_view' resume.id %}" class="flex-1 text-center px-3 py-2 bg-indigo-600 text-white text-sm rounded hover:bg-indigo-700">
+                        View
+                    </a>
+                    {% if resume.pdf_file %}
+                    <a href="{% url 'resume_download' resume.id %}" class="px-3 py-2 bg-gray-200 text-gray-700 text-sm rounded hover:bg-gray-300">
+                        <i class="fas fa-download"></i>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

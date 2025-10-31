@@ -1,0 +1,749 @@
+{% extends 'base.html' %}
+
+{% block title %}Complete Your Profile{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="bg-white rounded-xl shadow-lg p-8">
+        <h1 class="text-3xl font-bold gradient-text mb-2">Complete Your Profile</h1>
+        <p class="text-gray-600 mb-6">Fill in your details to create an ATS-optimized resume. Fields marked with * are required, others are optional.</p>
+
+        <form method="post" x-data="{ 
+            educationCount: {{ profile.education_entries|length|default:1 }}, 
+            experienceCount: {{ profile.experiences|length|default:0 }}, 
+            projectCount: {{ profile.projects|length|default:0 }}, 
+            publicationCount: {{ profile.publications|length|default:0 }},
+            achievementCount: {{ profile.achievements|length|default:0 }},
+            certificationCount: {{ profile.certifications|length|default:0 }},
+            leadershipCount: {{ profile.leadership|length|default:0 }}
+        }">
+            {% csrf_token %}
+            
+            <!-- Basic Contact Information -->
+            <div class="mb-8 pb-8 border-b border-gray-200">
+                <h2 class="text-2xl font-semibold mb-4 flex items-center">
+                    <i class="fas fa-user text-purple-600 mr-2"></i>
+                    Contact Information
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Full Name *</label>
+                        <input type="text" name="full_name" placeholder="John Doe" required value="{{ user.get_full_name }}"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Phone *</label>
+                        <input type="tel" name="phone" placeholder="+1-234-567-8900" required value="{{ profile.phone }}"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">City *</label>
+                        <input type="text" name="city" placeholder="San Francisco" required value="{{ profile.city }}"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">State</label>
+                        <input type="text" name="state" placeholder="CA" value="{{ profile.state }}"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">LinkedIn Profile</label>
+                        <input type="url" name="linkedin" placeholder="https://linkedin.com/in/your-profile" value="{{ profile.linkedin }}"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">GitHub Profile</label>
+                        <input type="url" name="github" placeholder="https://github.com/yourusername" value="{{ profile.github }}"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Professional Summary -->
+            <div class="mb-8 pb-8 border-b border-gray-200">
+                <h2 class="text-2xl font-semibold mb-4 flex items-center">
+                    <i class="fas fa-file-alt text-purple-600 mr-2"></i>
+                    Professional Summary
+                </h2>
+                <p class="text-sm text-gray-500 mb-3">A brief 2-3 sentence summary of your professional background and career goals (Optional - AI can generate this)</p>
+                <textarea name="summary" rows="4" placeholder="Example: Highly motivated Software Engineer with 5+ years of experience in building scalable web applications. Seeking to leverage expertise in Python and cloud computing to contribute to innovative projects."
+                          class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600">{{ profile.summary }}</textarea>
+            </div>
+
+            <!-- Education -->
+            <div class="mb-8 pb-8 border-b border-gray-200">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-semibold flex items-center">
+                        <i class="fas fa-graduation-cap text-purple-600 mr-2"></i>
+                        Education *
+                    </h2>
+                    <button type="button" @click="educationCount++" class="px-4 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors">
+                        <i class="fas fa-plus mr-1"></i> Add More
+                    </button>
+                </div>
+                <input type="hidden" name="education_count" :value="educationCount">
+                
+                {% for edu in profile.education_entries %}
+                <div class="bg-gray-50 p-6 rounded-lg mb-4 border border-gray-200">
+                    <div class="flex justify-between items-center mb-3">
+                        <h4 class="font-semibold text-gray-700">Education #{{ forloop.counter }}</h4>
+                        {% if profile.education_entries|length > 1 %}
+                        <button type="button" @click="educationCount--" class="text-red-600 hover:text-red-700 text-sm">
+                            <i class="fas fa-times"></i> Remove
+                        </button>
+                        {% endif %}
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Degree *</label>
+                            <input type="text" name="degree_{{ forloop.counter0 }}" placeholder="Bachelor of Science" required value="{{ edu.degree }}"
+                                   class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Major/Field *</label>
+                            <input type="text" name="field_{{ forloop.counter0 }}" placeholder="Computer Science" required value="{{ edu.field }}"
+                                   class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Institution *</label>
+                            <input type="text" name="institution_{{ forloop.counter0 }}" placeholder="University of California" required value="{{ edu.institution }}"
+                                   class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Start Year *</label>
+                            <input type="number" name="start_year_{{ forloop.counter0 }}" placeholder="2016" required min="1950" max="2030" value="{{ edu.start_year }}"
+                                   class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">End Year *</label>
+                            <input type="number" name="end_year_{{ forloop.counter0 }}" placeholder="2020" required min="1950" max="2030" value="{{ edu.end_year }}"
+                                   class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">CGPA/Percentage</label>
+                            <input type="text" name="gpa_{{ forloop.counter0 }}" placeholder="3.8/4.0 or 85%" value="{{ edu.gpa }}"
+                                   class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+                
+                {% if not profile.education_entries %}
+                <div class="bg-gray-50 p-6 rounded-lg mb-4 border border-gray-200">
+                    <div class="flex justify-between items-center mb-3">
+                        <h4 class="font-semibold text-gray-700">Education #1</h4>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Degree *</label>
+                            <input type="text" name="degree_0" placeholder="Bachelor of Science" required
+                                   class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Major/Field *</label>
+                            <input type="text" name="field_0" placeholder="Computer Science" required
+                                   class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Institution *</label>
+                            <input type="text" name="institution_0" placeholder="University of California" required
+                                   class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Start Year *</label>
+                            <input type="number" name="start_year_0" placeholder="2016" required min="1950" max="2030"
+                                   class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">End Year *</label>
+                            <input type="number" name="end_year_0" placeholder="2020" required min="1950" max="2030"
+                                   class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">CGPA/Percentage</label>
+                            <input type="text" name="gpa_0" placeholder="3.8/4.0 or 85%"
+                                   class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <template x-for="i in (educationCount - {{ profile.education_entries|length|default:1 }})" :key="i">
+                    <div class="bg-gray-50 p-6 rounded-lg mb-4 border border-gray-200">
+                        <div class="flex justify-between items-center mb-3">
+                            <h4 class="font-semibold text-gray-700">Education #<span x-text="i + {{ profile.education_entries|length|default:1 }}"></span></h4>
+                            <button type="button" @click="educationCount--" class="text-red-600 hover:text-red-700 text-sm">
+                                <i class="fas fa-times"></i> Remove
+                            </button>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Degree *</label>
+                                <input type="text" :name="'degree_' + (i - 1 + {{ profile.education_entries|length|default:1 }})" placeholder="Bachelor of Science" required
+                                       class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Major/Field *</label>
+                                <input type="text" :name="'field_' + (i - 1 + {{ profile.education_entries|length|default:1 }})" placeholder="Computer Science" required
+                                       class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Institution *</label>
+                                <input type="text" :name="'institution_' + (i - 1 + {{ profile.education_entries|length|default:1 }})" placeholder="University of California" required
+                                       class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Start Year *</label>
+                                <input type="number" :name="'start_year_' + (i - 1 + {{ profile.education_entries|length|default:1 }})" placeholder="2016" required min="1950" max="2030"
+                                       class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">End Year *</label>
+                                <input type="number" :name="'end_year_' + (i - 1 + {{ profile.education_entries|length|default:1 }})" placeholder="2020" required min="1950" max="2030"
+                                       class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">CGPA/Percentage</label>
+                                <input type="text" :name="'gpa_' + (i - 1 + {{ profile.education_entries|length|default:1 }})" placeholder="3.8/4.0 or 85%"
+                                       class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">
+                            </div>
+                        </div>
+                    </div>
+                </template>
+            </div>
+
+            <!-- Work Experience -->
+            <div class="mb-8 pb-8 border-b border-gray-200">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-semibold flex items-center">
+                        <i class="fas fa-briefcase text-purple-600 mr-2"></i>
+                        Work Experience <span class="text-sm text-gray-500 font-normal ml-2">(Optional)</span>
+                    </h2>
+                    <button type="button" @click="experienceCount++" class="px-4 py-2 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 transition-colors">
+                        <i class="fas fa-plus mr-1"></i> Add Experience
+                    </button>
+                </div>
+                <p class="text-sm text-gray-500 mb-4">Leave empty if you have no work experience</p>
+                <input type="hidden" name="experience_count" :value="experienceCount">
+                
+                {% for exp in profile.experiences %}
+                <div class="bg-gray-50 p-6 rounded-lg mb-4 border border-gray-200">
+                    <div class="flex justify-between items-center mb-3">
+                        <h4 class="font-semibold text-gray-700">Experience #{{ forloop.counter }}</h4>
+                        <button type="button" @click="experienceCount--" class="text-red-600 hover:text-red-700 text-sm">
+                            <i class="fas fa-times"></i> Remove
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Job Title</label>
+                            <input type="text" name="exp_title_{{ forloop.counter0 }}" placeholder="Software Engineer" value="{{ exp.title }}"
+                                   class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Company Name</label>
+                            <input type="text" name="exp_company_{{ forloop.counter0 }}" placeholder="Tech Corp" value="{{ exp.company }}"
+                                   class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+                            <input type="text" name="exp_start_{{ forloop.counter0 }}" placeholder="Jan 2020" value="{{ exp.start_date }}"
+                                   class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+                            <input type="text" name="exp_end_{{ forloop.counter0 }}" placeholder="Present or Dec 2023" value="{{ exp.end_date }}"
+                                   class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Responsibilities & Achievements</label>
+                            <textarea name="exp_description_{{ forloop.counter0 }}" rows="3" placeholder="• Developed features that increased user engagement by 15%&#10;• Led team of 5 developers&#10;• Implemented CI/CD pipeline"
+                                      class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">{% if exp.responsibilities %}{% for resp in exp.responsibilities %}{{ resp }}{% if not forloop.last %}&#10;{% endif %}{% endfor %}{% elif exp.description %}{{ exp.description }}{% endif %}</textarea>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+                
+                <template x-for="i in (experienceCount - {{ profile.experiences|length|default:0 }})" :key="i">
+                    <div class="bg-gray-50 p-6 rounded-lg mb-4 border border-gray-200">
+                        <div class="flex justify-between items-center mb-3">
+                            <h4 class="font-semibold text-gray-700">Experience #<span x-text="i + {{ profile.experiences|length|default:0 }}"></span></h4>
+                            <button type="button" @click="experienceCount--" class="text-red-600 hover:text-red-700 text-sm">
+                                <i class="fas fa-times"></i> Remove
+                            </button>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Job Title</label>
+                                <input type="text" :name="'exp_title_' + (i - 1 + {{ profile.experiences|length|default:0 }})" placeholder="Software Engineer"
+                                       class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Company Name</label>
+                                <input type="text" :name="'exp_company_' + (i - 1 + {{ profile.experiences|length|default:0 }})" placeholder="Tech Corp"
+                                       class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+                                <input type="text" :name="'exp_start_' + (i - 1 + {{ profile.experiences|length|default:0 }})" placeholder="Jan 2020"
+                                       class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+                                <input type="text" :name="'exp_end_' + (i - 1 + {{ profile.experiences|length|default:0 }})" placeholder="Present or Dec 2023"
+                                       class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Responsibilities & Achievements</label>
+                                <textarea :name="'exp_description_' + (i - 1 + {{ profile.experiences|length|default:0 }})" rows="3" placeholder="• Developed features that increased user engagement by 15%&#10;• Led team of 5 developers&#10;• Implemented CI/CD pipeline"
+                                          class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+                <div x-show="experienceCount === 0" class="text-center py-8 text-gray-400">
+                    <i class="fas fa-briefcase text-4xl mb-2"></i>
+                    <p>No work experience added yet. Click "Add Experience" button above.</p>
+                </div>
+            </div>
+
+            <!-- Skills -->
+            <div class="mb-8 pb-8 border-b border-gray-200">
+                <h2 class="text-2xl font-semibold mb-4 flex items-center">
+                    <i class="fas fa-lightbulb text-purple-600 mr-2"></i>
+                    Skills *
+                </h2>
+                <p class="text-sm text-gray-500 mb-3">Enter your skills separated by commas. Include technical skills, soft skills, languages, tools, or any relevant abilities.</p>
+                <textarea name="skills" rows="4" placeholder="Examples:&#10;• Technical: Python, JavaScript, Data Analysis, Project Management, Adobe Photoshop&#10;• Business: Marketing Strategy, Financial Analysis, Customer Relations&#10;• Other: Public Speaking, Spanish (Fluent), Team Leadership" required
+                          class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">{{ profile.skills|join:', ' }}</textarea>
+                <p class="text-xs text-gray-400 mt-2">💡 Tip: List 10-20 relevant skills that match your field and career goals</p>
+            </div>
+
+            <!-- Projects -->
+            <div class="mb-8 pb-8 border-b border-gray-200">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-semibold flex items-center">
+                        <i class="fas fa-project-diagram text-purple-600 mr-2"></i>
+                        Projects <span class="text-sm text-gray-500 font-normal ml-2">(Optional)</span>
+                    </h2>
+                    <button type="button" @click="projectCount++" class="px-4 py-2 bg-teal-100 text-teal-700 rounded-lg hover:bg-teal-200 transition-colors">
+                        <i class="fas fa-plus mr-1"></i> Add Project
+                    </button>
+                </div>
+                <input type="hidden" name="project_count" :value="projectCount">
+                
+                {% for project in profile.projects %}
+                <div class="bg-gray-50 p-6 rounded-lg mb-4 border border-gray-200">
+                    <div class="flex justify-between items-center mb-3">
+                        <h4 class="font-semibold text-gray-700">Project #{{ forloop.counter }}</h4>
+                        <button type="button" @click="projectCount--" class="text-red-600 hover:text-red-700 text-sm">
+                            <i class="fas fa-times"></i> Remove
+                        </button>
+                    </div>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Project Name</label>
+                            <input type="text" name="project_name_{{ forloop.counter0 }}" placeholder="E-commerce Platform" value="{{ project.name }}"
+                                   class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                            <textarea name="project_description_{{ forloop.counter0 }}" rows="2" placeholder="Built a full-stack e-commerce platform with payment integration..."
+                                      class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">{{ project.description }}</textarea>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Technologies Used</label>
+                            <input type="text" name="project_tech_{{ forloop.counter0 }}" placeholder="React, Node.js, MongoDB, Stripe API" value="{% for tech in project.technologies %}{{ tech }}{% if not forloop.last %}, {% endif %}{% endfor %}"
+                                   class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Project Link (GitHub/Live Demo)</label>
+                            <input type="url" name="project_link_{{ forloop.counter0 }}" placeholder="https://github.com/username/project" value="{{ project.link }}"
+                                   class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+                
+                <template x-for="i in (projectCount - {{ profile.projects|length|default:0 }})" :key="i">
+                    <div class="bg-gray-50 p-6 rounded-lg mb-4 border border-gray-200">
+                        <div class="flex justify-between items-center mb-3">
+                            <h4 class="font-semibold text-gray-700">Project #<span x-text="i + {{ profile.projects|length|default:0 }}"></span></h4>
+                            <button type="button" @click="projectCount--" class="text-red-600 hover:text-red-700 text-sm">
+                                <i class="fas fa-times"></i> Remove
+                            </button>
+                        </div>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Project Name</label>
+                                <input type="text" :name="'project_name_' + (i - 1 + {{ profile.projects|length|default:0 }})" placeholder="E-commerce Platform"
+                                       class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                                <textarea :name="'project_description_' + (i - 1 + {{ profile.projects|length|default:0 }})" rows="2" placeholder="Built a full-stack e-commerce platform with payment integration..."
+                                          class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600"></textarea>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Technologies Used</label>
+                                <input type="text" :name="'project_tech_' + (i - 1 + {{ profile.projects|length|default:0 }})" placeholder="React, Node.js, MongoDB, Stripe API"
+                                       class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Project Link (GitHub/Live Demo)</label>
+                                <input type="url" :name="'project_link_' + (i - 1 + {{ profile.projects|length|default:0 }})" placeholder="https://github.com/username/project"
+                                       class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">
+                            </div>
+                        </div>
+                    </div>
+                </template>
+                <div x-show="projectCount === 0" class="text-center py-8 text-gray-400">
+                    <i class="fas fa-project-diagram text-4xl mb-2"></i>
+                    <p>No projects added yet. Click "Add Project" button above.</p>
+                </div>
+            </div>
+
+            <!-- Publications -->
+            <div class="mb-8 pb-8 border-b border-gray-200">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-semibold flex items-center">
+                        <i class="fas fa-book text-purple-600 mr-2"></i>
+                        Publications <span class="text-sm text-gray-500 font-normal ml-2">(Optional)</span>
+                    </h2>
+                    <button type="button" @click="publicationCount++" class="px-4 py-2 bg-pink-100 text-pink-700 rounded-lg hover:bg-pink-200 transition-colors">
+                        <i class="fas fa-plus mr-1"></i> Add Publication
+                    </button>
+                </div>
+                <input type="hidden" name="publication_count" :value="publicationCount">
+
+                {% for publication in profile.publications %}
+                <div class="bg-gray-50 p-6 rounded-lg mb-4 border border-gray-200">
+                    <div class="flex justify-between items-center mb-3">
+                        <h4 class="font-semibold text-gray-700">Publication #{{ forloop.counter }}</h4>
+                        <button type="button" @click="publicationCount--" class="text-red-600 hover:text-red-700 text-sm">
+                            <i class="fas fa-times"></i> Remove
+                        </button>
+                    </div>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Publication Title</label>
+                            <input type="text" name="publication_title_{{ forloop.counter0 }}" placeholder="Deep Learning Approach for Image Recognition" value="{{ publication.title }}"
+                                   class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Conference/Journal Name</label>
+                            <input type="text" name="publication_venue_{{ forloop.counter0 }}" placeholder="IEEE Conference on Computer Vision" value="{{ publication.venue }}"
+                                   class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                            <input type="text" name="publication_date_{{ forloop.counter0 }}" placeholder="June 2023" value="{{ publication.date }}"
+                                   class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Brief Description</label>
+                            <textarea name="publication_description_{{ forloop.counter0 }}" rows="2" placeholder="Description of your contribution and impact..."
+                                      class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">{{ publication.description }}</textarea>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">DOI/Link</label>
+                            <input type="url" name="publication_link_{{ forloop.counter0 }}" placeholder="https://doi.org/..." value="{{ publication.link }}"
+                                   class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+
+                <template x-for="i in (publicationCount - {{ profile.publications|length|default:0 }})" :key="i">
+                    <div class="bg-gray-50 p-6 rounded-lg mb-4 border border-gray-200">
+                        <div class="flex justify-between items-center mb-3">
+                            <h4 class="font-semibold text-gray-700">Publication #<span x-text="i + {{ profile.publications|length|default:0 }}"></span></h4>
+                            <button type="button" @click="publicationCount--" class="text-red-600 hover:text-red-700 text-sm">
+                                <i class="fas fa-times"></i> Remove
+                            </button>
+                        </div>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Publication Title</label>
+                                <input type="text" :name="'publication_title_' + (i - 1 + {{ profile.publications|length|default:0 }})" placeholder="Deep Learning Approach for Image Recognition"
+                                       class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Conference/Journal Name</label>
+                                <input type="text" :name="'publication_venue_' + (i - 1 + {{ profile.publications|length|default:0 }})" placeholder="IEEE Conference on Computer Vision"
+                                       class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                                <input type="text" :name="'publication_date_' + (i - 1 + {{ profile.publications|length|default:0 }})" placeholder="June 2023"
+                                       class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Brief Description</label>
+                                <textarea :name="'publication_description_' + (i - 1 + {{ profile.publications|length|default:0 }})" rows="2" placeholder="Description of your contribution and impact..."
+                                          class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600"></textarea>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">DOI/Link</label>
+                                <input type="url" :name="'publication_link_' + (i - 1 + {{ profile.publications|length|default:0 }})" placeholder="https://doi.org/..."
+                                       class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">
+                            </div>
+                        </div>
+                    </div>
+                </template>
+                <div x-show="publicationCount === 0" class="text-center py-8 text-gray-400">
+                    <i class="fas fa-book text-4xl mb-2"></i>
+                    <p>No publications added yet. Click "Add Publication" button above.</p>
+                </div>
+            </div>
+
+            <!-- Achievements & Awards -->
+            <div class="mb-8 pb-8 border-b border-gray-200">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-semibold flex items-center">
+                        <i class="fas fa-trophy text-purple-600 mr-2"></i>
+                        Achievements & Awards <span class="text-sm text-gray-500 font-normal ml-2">(Optional)</span>
+                    </h2>
+                    <button type="button" @click="achievementCount++" class="px-4 py-2 bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200 transition-colors">
+                        <i class="fas fa-plus mr-1"></i> Add Achievement
+                    </button>
+                </div>
+                <input type="hidden" name="achievement_count" :value="achievementCount">
+
+                {% for achievement in profile.achievements %}
+                <div class="bg-gray-50 p-6 rounded-lg mb-4 border border-gray-200">
+                    <div class="flex justify-between items-center mb-3">
+                        <h4 class="font-semibold text-gray-700">Achievement #{{ forloop.counter }}</h4>
+                        <button type="button" @click="achievementCount--" class="text-red-600 hover:text-red-700 text-sm">
+                            <i class="fas fa-times"></i> Remove
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Award/Achievement Name</label>
+                            <input type="text" name="achievement_name_{{ forloop.counter0 }}" placeholder="First Place - National Hackathon" value="{{ achievement.name }}"
+                                   class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Awarding Organization</label>
+                            <input type="text" name="achievement_org_{{ forloop.counter0 }}" placeholder="Tech Innovators Inc." value="{{ achievement.organization }}"
+                                   class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Level/Description</label>
+                            <input type="text" name="achievement_level_{{ forloop.counter0 }}" placeholder="National Level / Description of achievement" value="{{ achievement.level }}"
+                                   class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+
+                <template x-for="i in (achievementCount - {{ profile.achievements|length|default:0 }})" :key="i">
+                    <div class="bg-gray-50 p-6 rounded-lg mb-4 border border-gray-200">
+                        <div class="flex justify-between items-center mb-3">
+                            <h4 class="font-semibold text-gray-700">Achievement #<span x-text="i + {{ profile.achievements|length|default:0 }}"></span></h4>
+                            <button type="button" @click="achievementCount--" class="text-red-600 hover:text-red-700 text-sm">
+                                <i class="fas fa-times"></i> Remove
+                            </button>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Award/Achievement Name</label>
+                                <input type="text" :name="'achievement_name_' + (i - 1 + {{ profile.achievements|length|default:0 }})" placeholder="First Place - National Hackathon"
+                                       class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Awarding Organization</label>
+                                <input type="text" :name="'achievement_org_' + (i - 1 + {{ profile.achievements|length|default:0 }})" placeholder="Tech Innovators Inc."
+                                       class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Level/Description</label>
+                                <input type="text" :name="'achievement_level_' + (i - 1 + {{ profile.achievements|length|default:0 }})" placeholder="National Level / Description of achievement"
+                                       class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">
+                            </div>
+                        </div>
+                    </div>
+                </template>
+                <div x-show="achievementCount === 0" class="text-center py-8 text-gray-400">
+                    <i class="fas fa-trophy text-4xl mb-2"></i>
+                    <p>No achievements added yet. Click "Add Achievement" button above.</p>
+                </div>
+            </div>
+
+            <!-- Certifications -->
+            <div class="mb-8 pb-8 border-b border-gray-200">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-semibold flex items-center">
+                        <i class="fas fa-certificate text-purple-600 mr-2"></i>
+                        Certifications <span class="text-sm text-gray-500 font-normal ml-2">(Optional)</span>
+                    </h2>
+                    <button type="button" @click="certificationCount++" class="px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors">
+                        <i class="fas fa-plus mr-1"></i> Add Certification
+                    </button>
+                </div>
+                <input type="hidden" name="certification_count" :value="certificationCount">
+                
+                {% for cert in profile.certifications %}
+                <div class="bg-gray-50 p-6 rounded-lg mb-4 border border-gray-200">
+                    <div class="flex justify-between items-center mb-3">
+                        <h4 class="font-semibold text-gray-700">Certification #{{ forloop.counter }}</h4>
+                        <button type="button" @click="certificationCount--" class="text-red-600 hover:text-red-700 text-sm">
+                            <i class="fas fa-times"></i> Remove
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Certification Name</label>
+                            <input type="text" name="cert_name_{{ forloop.counter0 }}" placeholder="AWS Certified Solutions Architect" value="{{ cert.name }}"
+                                   class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Issuing Organization</label>
+                            <input type="text" name="cert_issuer_{{ forloop.counter0 }}" placeholder="Amazon Web Services" value="{{ cert.issuer }}"
+                                   class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Year Obtained</label>
+                            <input type="number" name="cert_year_{{ forloop.counter0 }}" placeholder="2023" min="1950" max="2030" value="{{ cert.year }}"
+                                   class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+                
+                <template x-for="i in (certificationCount - {{ profile.certifications|length|default:0 }})" :key="i">
+                    <div class="bg-gray-50 p-6 rounded-lg mb-4 border border-gray-200">
+                        <div class="flex justify-between items-center mb-3">
+                            <h4 class="font-semibold text-gray-700">Certification #<span x-text="i + {{ profile.certifications|length|default:0 }}"></span></h4>
+                            <button type="button" @click="certificationCount--" class="text-red-600 hover:text-red-700 text-sm">
+                                <i class="fas fa-times"></i> Remove
+                            </button>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Certification Name</label>
+                                <input type="text" :name="'cert_name_' + (i - 1 + {{ profile.certifications|length|default:0 }})" placeholder="AWS Certified Solutions Architect"
+                                       class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Issuing Organization</label>
+                                <input type="text" :name="'cert_issuer_' + (i - 1 + {{ profile.certifications|length|default:0 }})" placeholder="Amazon Web Services"
+                                       class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Year Obtained</label>
+                                <input type="number" :name="'cert_year_' + (i - 1 + {{ profile.certifications|length|default:0 }})" placeholder="2023" min="1950" max="2030"
+                                       class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">
+                            </div>
+                        </div>
+                    </div>
+                </template>
+                <div x-show="certificationCount === 0" class="text-center py-8 text-gray-400">
+                    <i class="fas fa-certificate text-4xl mb-2"></i>
+                    <p>No certifications added yet. Click "Add Certification" button above.</p>
+                </div>
+            </div>
+
+            <!-- Extracurricular & Leadership -->
+            <div class="mb-8">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-semibold flex items-center">
+                        <i class="fas fa-users text-purple-600 mr-2"></i>
+                        Extracurricular & Leadership <span class="text-sm text-gray-500 font-normal ml-2">(Optional)</span>
+                    </h2>
+                    <button type="button" @click="leadershipCount++" class="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors">
+                        <i class="fas fa-plus mr-1"></i> Add Activity
+                    </button>
+                </div>
+                <input type="hidden" name="leadership_count" :value="leadershipCount">
+
+                {% for item in profile.leadership %}
+                <div class="bg-gray-50 p-6 rounded-lg mb-4 border border-gray-200">
+                    <div class="flex justify-between items-center mb-3">
+                        <h4 class="font-semibold text-gray-700">Activity #{{ forloop.counter }}</h4>
+                        <button type="button" @click="leadershipCount--" class="text-red-600 hover:text-red-700 text-sm">
+                            <i class="fas fa-times"></i> Remove
+                        </button>
+                    </div>
+                    <div class="space-y-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Role/Position</label>
+                                <input type="text" name="leadership_role_{{ forloop.counter0 }}" placeholder="President - Tech Club" value="{{ item.role }}"
+                                       class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Organization</label>
+                                <input type="text" name="leadership_org_{{ forloop.counter0 }}" placeholder="University Computer Science Society" value="{{ item.organization }}"
+                                       class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">City/Location</label>
+                            <input type="text" name="leadership_location_{{ forloop.counter0 }}" placeholder="Boston, MA" value="{{ item.location }}"
+                                   class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                            <textarea name="leadership_description_{{ forloop.counter0 }}" rows="2" placeholder="Organized workshops for 50+ students on web development, receiving 95% positive feedback..."
+                                      class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">{{ item.description }}</textarea>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+
+                <template x-for="i in (leadershipCount - {{ profile.leadership|length|default:0 }})" :key="i">
+                    <div class="bg-gray-50 p-6 rounded-lg mb-4 border border-gray-200">
+                        <div class="flex justify-between items-center mb-3">
+                            <h4 class="font-semibold text-gray-700">Activity #<span x-text="i + {{ profile.leadership|length|default:0 }}"></span></h4>
+                            <button type="button" @click="leadershipCount--" class="text-red-600 hover:text-red-700 text-sm">
+                                <i class="fas fa-times"></i> Remove
+                            </button>
+                        </div>
+                        <div class="space-y-4">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Role/Position</label>
+                                    <input type="text" :name="'leadership_role_' + (i - 1 + {{ profile.leadership|length|default:0 }})" placeholder="President - Tech Club"
+                                           class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Organization</label>
+                                    <input type="text" :name="'leadership_org_' + (i - 1 + {{ profile.leadership|length|default:0 }})" placeholder="University Computer Science Society"
+                                           class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">City/Location</label>
+                                <input type="text" :name="'leadership_location_' + (i - 1 + {{ profile.leadership|length|default:0 }})" placeholder="Boston, MA"
+                                       class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                                <textarea :name="'leadership_description_' + (i - 1 + {{ profile.leadership|length|default:0 }})" rows="2" placeholder="Organized workshops for 50+ students on web development, receiving 95% positive feedback..."
+                                          class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+                <div x-show="leadershipCount === 0" class="text-center py-8 text-gray-400">
+                    <i class="fas fa-users text-4xl mb-2"></i>
+                    <p>No activities added yet. Click "Add Activity" button above.</p>
+                </div>
+            </div>
+
+            <!-- Submit Buttons -->
+            <div class="flex justify-end space-x-4 pt-6 border-t border-gray-200">
+                <a href="{% url 'dashboard' %}" class="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                    Cancel
+                </a>
+                <button type="submit" class="btn-gradient px-8 py-3 rounded-lg font-semibold">
+                    <i class="fas fa-save mr-2"></i>
+                    Save Profile
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

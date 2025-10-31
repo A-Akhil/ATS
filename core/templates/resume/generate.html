@@ -1,0 +1,228 @@
+{% extends 'base.html' %}
+
+{% block title %}Generate Resume{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold gradient-text">Generate Resume</h1>
+        <p class="mt-2 text-gray-600">Create an ATS-friendly resume powered by AI</p>
+    </div>
+
+    <!-- Profile Completeness Check -->
+    {% if not profile.is_complete %}
+    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <i class="fas fa-exclamation-triangle text-yellow-400"></i>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm text-yellow-700">
+                    Your profile is incomplete. For the best resume, please complete your profile first.
+                    <a href="{% url 'profile' %}" class="font-medium underline">Complete Profile</a>
+                </p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Resume Generation Form -->
+    <div class="bg-white rounded-xl shadow-sm p-6 mb-6">
+        <form method="post" id="generateForm" x-data="{ generating: false, step: 1 }">
+            {% csrf_token %}
+            
+            <!-- Step Indicator -->
+            <div class="mb-8">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center flex-1">
+                        <div :class="step >= 1 ? 'bg-purple-600 text-white' : 'bg-gray-200 text-gray-600'" class="w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-colors">1</div>
+                        <div class="flex-1 h-1 mx-4" :class="step >= 2 ? 'bg-purple-600' : 'bg-gray-200'"></div>
+                    </div>
+                    <div class="flex items-center flex-1">
+                        <div :class="step >= 2 ? 'bg-purple-600 text-white' : 'bg-gray-200 text-gray-600'" class="w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-colors">2</div>
+                        <div class="flex-1 h-1 mx-4" :class="step >= 3 ? 'bg-purple-600' : 'bg-gray-200'"></div>
+                    </div>
+                    <div class="flex items-center">
+                        <div :class="step >= 3 ? 'bg-purple-600 text-white' : 'bg-gray-200 text-gray-600'" class="w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-colors">3</div>
+                    </div>
+                </div>
+                <div class="flex justify-between mt-2 text-sm text-gray-600">
+                    <span>Template</span>
+                    <span>Customize</span>
+                    <span>Generate</span>
+                </div>
+            </div>
+
+            <!-- Step 1: Template Selection -->
+            <div x-show="step === 1" x-transition>
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Select Resume Template</h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <label class="relative cursor-pointer">
+                        <input type="radio" name="template" value="professional" checked class="peer sr-only">
+                        <div class="border-2 border-gray-200 peer-checked:border-purple-600 peer-checked:bg-purple-50 rounded-lg p-6 transition-all hover:border-gray-300">
+                            <div class="flex items-start">
+                                <i class="fas fa-file-alt text-2xl text-purple-600 mt-1"></i>
+                                <div class="ml-4">
+                                    <h4 class="font-semibold text-gray-900">Professional</h4>
+                                    <p class="text-sm text-gray-600 mt-1">Clean, modern design optimized for ATS systems</p>
+                                    <p class="text-xs text-gray-500 mt-2">Best for: Tech, Finance, Corporate roles</p>
+                                </div>
+                            </div>
+                        </div>
+                    </label>
+
+                    <label class="relative cursor-pointer">
+                        <input type="radio" name="template" value="academic" class="peer sr-only">
+                        <div class="border-2 border-gray-200 peer-checked:border-purple-600 peer-checked:bg-purple-50 rounded-lg p-6 transition-all hover:border-gray-300">
+                            <div class="flex items-start">
+                                <i class="fas fa-graduation-cap text-2xl text-indigo-600 mt-1"></i>
+                                <div class="ml-4">
+                                    <h4 class="font-semibold text-gray-900">Academic</h4>
+                                    <p class="text-sm text-gray-600 mt-1">Detailed format with emphasis on education and research</p>
+                                    <p class="text-xs text-gray-500 mt-2">Best for: Research, Academia, PhD positions</p>
+                                </div>
+                            </div>
+                        </div>
+                    </label>
+                </div>
+
+                <button type="button" @click="step = 2" class="btn-gradient w-full">
+                    Continue to Customization
+                </button>
+            </div>
+
+            <!-- Step 2: Customization -->
+            <div x-show="step === 2" x-transition>
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Customize Resume Content</h3>
+                
+                <div class="space-y-6">
+                    <!-- Summary/Objective -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Professional Summary (Optional)</label>
+                        <textarea name="summary" rows="3" 
+                                  class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent transition-all"
+                                  placeholder="Brief professional summary highlighting your key strengths and career objective..."></textarea>
+                        <p class="mt-1 text-xs text-gray-500">Leave empty to auto-generate using AI</p>
+                    </div>
+
+                    <!-- Target Role -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Target Role/Position</label>
+                        <input type="text" name="target_role" 
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent transition-all"
+                               placeholder="e.g., Software Engineer, Data Scientist">
+                        <p class="mt-1 text-xs text-gray-500">Helps AI tailor your resume for specific roles</p>
+                    </div>
+
+                    <!-- Sections to Include -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-3">Include Sections</label>
+                        <div class="space-y-2">
+                            <label class="flex items-center">
+                                <input type="checkbox" name="include_summary" checked class="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500">
+                                <span class="ml-2 text-sm text-gray-700">Professional Summary</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" name="include_experience" checked class="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500">
+                                <span class="ml-2 text-sm text-gray-700">Work Experience</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" name="include_education" checked class="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500">
+                                <span class="ml-2 text-sm text-gray-700">Education</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" name="include_skills" checked class="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500">
+                                <span class="ml-2 text-sm text-gray-700">Technical Skills</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" name="include_projects" checked class="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500">
+                                <span class="ml-2 text-sm text-gray-700">Projects</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" name="include_certifications" checked class="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500">
+                                <span class="ml-2 text-sm text-gray-700">Certifications</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex gap-3 mt-6">
+                    <button type="button" @click="step = 1" class="flex-1 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                        Back
+                    </button>
+                    <button type="button" @click="step = 3" class="flex-1 btn-gradient">
+                        Continue to Generate
+                    </button>
+                </div>
+            </div>
+
+            <!-- Step 3: Generate -->
+            <div x-show="step === 3" x-transition>
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Ready to Generate</h3>
+                
+                <div class="bg-purple-50 border border-purple-200 rounded-lg p-6 mb-6">
+                    <div class="flex items-start">
+                        <i class="fas fa-info-circle text-purple-600 text-xl mt-1"></i>
+                        <div class="ml-4">
+                            <h4 class="font-semibold text-purple-900 mb-2">How it works</h4>
+                            <ul class="space-y-1 text-sm text-purple-800">
+                                <li>• AI analyzes your profile and generates optimized content</li>
+                                <li>• Resume is formatted in LaTeX for professional quality</li>
+                                <li>• PDF is compiled and ready for download</li>
+                                <li>• ATS-friendly structure ensures maximum compatibility</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div x-show="!generating">
+                    <div class="flex gap-3">
+                        <button type="button" @click="step = 2" class="flex-1 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                            Back
+                        </button>
+                        <button type="submit" @click="generating = true" class="flex-1 btn-gradient">
+                            <i class="fas fa-magic mr-2"></i>
+                            Generate Resume
+                        </button>
+                    </div>
+                </div>
+
+                <div x-show="generating" class="text-center py-8">
+                    <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mb-4"></div>
+                    <p class="text-gray-600 font-medium">Generating your resume...</p>
+                    <p class="text-sm text-gray-500 mt-2">This may take 30-60 seconds</p>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Previous Resumes -->
+    {% if resumes %}
+    <div class="bg-white rounded-xl shadow-sm p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Your Resumes</h3>
+        <div class="space-y-3">
+            {% for resume in resumes %}
+            <div class="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-purple-300 transition-colors">
+                <div class="flex items-center">
+                    <i class="fas fa-file-pdf text-red-500 text-2xl mr-4"></i>
+                    <div>
+                        <p class="font-medium text-gray-900">Resume - {{ resume.created_at|date:"M d, Y" }}</p>
+                        <p class="text-sm text-gray-500">{{ resume.source_type|title }}</p>
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <a href="{% url 'resume_view' resume.id %}" class="px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                        <i class="fas fa-eye mr-1"></i> View
+                    </a>
+                    <a href="{% url 'resume_download' resume.id %}" class="px-3 py-2 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
+                        <i class="fas fa-download mr-1"></i> Download
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,136 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="min-h-screen flex flex-col">
+    <nav class="bg-white shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div class="flex justify-between items-center">
+                <div class="text-2xl font-bold gradient-text">
+                    ATS Resume Checker
+                </div>
+                <div class="space-x-4">
+                    <a href="{% url 'login' %}" class="text-gray-700 hover:text-indigo-600 font-medium">
+                        Login
+                    </a>
+                    <a href="{% url 'register' %}" class="btn-gradient text-white px-6 py-2 rounded-lg font-medium">
+                        Get Started
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="flex-grow">
+        <div class="gradient-bg text-white py-20">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                <h1 class="text-5xl md:text-6xl font-bold mb-6">
+                    Beat the ATS, Land Your Dream Job
+                </h1>
+                <p class="text-xl md:text-2xl mb-8 text-indigo-100">
+                    AI-powered resume analysis with Gemini and BERT scoring
+                </p>
+                <div class="space-x-4">
+                    <a href="{% url 'register' %}" class="inline-block bg-white text-indigo-600 px-8 py-3 rounded-lg font-semibold text-lg hover:bg-gray-100 transition">
+                        Create Your Resume
+                    </a>
+                    <a href="{% url 'login' %}" class="inline-block bg-indigo-800 bg-opacity-50 text-white px-8 py-3 rounded-lg font-semibold text-lg hover:bg-opacity-70 transition">
+                        Sign In
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+            <h2 class="text-3xl font-bold text-center mb-12 text-gray-900">
+                How It Works
+            </h2>
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="text-center p-6 card-hover bg-white rounded-lg shadow">
+                    <div class="w-16 h-16 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-user-plus text-2xl text-white"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3">1. Create Your Profile</h3>
+                    <p class="text-gray-600">
+                        Enter your education, skills, and experience to build a comprehensive profile
+                    </p>
+                </div>
+                
+                <div class="text-center p-6 card-hover bg-white rounded-lg shadow">
+                    <div class="w-16 h-16 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-file-alt text-2xl text-white"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3">2. Generate ATS Resume</h3>
+                    <p class="text-gray-600">
+                        Our AI creates a LaTeX-formatted, ATS-friendly resume using Gemini
+                    </p>
+                </div>
+                
+                <div class="text-center p-6 card-hover bg-white rounded-lg shadow">
+                    <div class="w-16 h-16 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-chart-line text-2xl text-white"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3">3. Match & Improve</h3>
+                    <p class="text-gray-600">
+                        Get detailed ATS scores and AI-powered suggestions to improve your resume
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-gray-100 py-16">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <h2 class="text-3xl font-bold text-center mb-12 text-gray-900">
+                    Key Features
+                </h2>
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div class="flex items-start bg-white p-6 rounded-lg shadow">
+                        <i class="fas fa-robot text-3xl text-indigo-600 mr-4 mt-1"></i>
+                        <div>
+                            <h3 class="text-lg font-semibold mb-2">AI-Powered Generation</h3>
+                            <p class="text-gray-600">Gemini AI creates professional LaTeX resumes tailored to your profile</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-start bg-white p-6 rounded-lg shadow">
+                        <i class="fas fa-brain text-3xl text-indigo-600 mr-4 mt-1"></i>
+                        <div>
+                            <h3 class="text-lg font-semibold mb-2">BERT Semantic Matching</h3>
+                            <p class="text-gray-600">Advanced NLP scoring compares your resume against job descriptions</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-start bg-white p-6 rounded-lg shadow">
+                        <i class="fas fa-percentage text-3xl text-indigo-600 mr-4 mt-1"></i>
+                        <div>
+                            <h3 class="text-lg font-semibold mb-2">Detailed Score Breakdown</h3>
+                            <p class="text-gray-600">See exactly how you match on education, skills, and experience</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-start bg-white p-6 rounded-lg shadow">
+                        <i class="fas fa-lightbulb text-3xl text-indigo-600 mr-4 mt-1"></i>
+                        <div>
+                            <h3 class="text-lg font-semibold mb-2">Smart Suggestions</h3>
+                            <p class="text-gray-600">Get actionable recommendations to improve your resume match rate</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="gradient-bg text-white py-16">
+            <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                <h2 class="text-3xl font-bold mb-6">
+                    Ready to Get Started?
+                </h2>
+                <p class="text-xl mb-8 text-indigo-100">
+                    Join now and create your ATS-optimized resume in minutes
+                </p>
+                <a href="{% url 'register' %}" class="inline-block bg-white text-indigo-600 px-8 py-3 rounded-lg font-semibold text-lg hover:bg-gray-100 transition">
+                    Create Free Account
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
