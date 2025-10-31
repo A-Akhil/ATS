@@ -8,9 +8,11 @@ from typing import Dict, List, Tuple
 class NLPService:
     def __init__(self):
         try:
+            print("[NLP] Loading SentenceTransformer model 'all-MiniLM-L6-v2'...")
             self.model = SentenceTransformer('all-MiniLM-L6-v2')
+            print("[NLP] SentenceTransformer model loaded successfully")
         except Exception as e:
-            print(f"Error loading sentence transformer: {e}")
+            print(f"[NLP ERROR] Error loading sentence transformer: {e}")
             self.model = None
     
     def normalize_text(self, text: str) -> str:
@@ -103,23 +105,33 @@ class NLPService:
         }
     
     def parse_resume_sections(self, text: str) -> Dict:
-        return {
+        print("[NLP] Parsing resume sections...")
+        result = {
             'education': self.extract_education(text),
             'skills': self.extract_skills(text),
             'experience': self.extract_experience(text)
         }
+        print(f"[NLP] Resume sections parsed - Education: {result['education']['degree_level']}, Skills: {len(result['skills'])}, Experience: {result['experience']['years']} years")
+        return result
     
     def parse_jd_sections(self, text: str) -> Dict:
-        return {
+        print("[NLP] Parsing JD sections...")
+        result = {
             'education': self.extract_education(text),
             'skills': self.extract_skills(text),
             'experience': self.extract_experience(text)
         }
+        print(f"[NLP] JD sections parsed - Education: {result['education']['degree_level']}, Skills: {len(result['skills'])}, Experience: {result['experience']['years']} years")
+        return result
     
     def compute_embeddings(self, texts: List[str]) -> np.ndarray:
         if not self.model:
+            print("[NLP WARNING] Model not loaded, returning zero embeddings")
             return np.zeros((len(texts), 384))
-        return self.model.encode(texts)
+        print(f"[NLP] Computing embeddings for {len(texts)} text(s)...")
+        embeddings = self.model.encode(texts)
+        print(f"[NLP] Embeddings computed: shape {embeddings.shape}")
+        return embeddings
     
     def compute_similarity(self, text1: str, text2: str) -> float:
         if not text1 or not text2:

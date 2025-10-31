@@ -441,37 +441,70 @@ def resume_latex_download(request, resume_id):
 
 @login_required
 def match_job(request):
-    resumes = request.user.resumes.all()
+    print(f"[MATCH VIEW] {request.method} request to /match/ by {request.user.email}")
+    profile = request.user.profile
+    resumes = request.user.resumes.order_by('-created_at')
+    resumes_count = resumes.count()
+    recent_matches = request.user.match_attempts.all()[:5]
+    total_matches = request.user.match_attempts.count()
+    print(f"[MATCH VIEW] Resumes available: {resumes_count}")
     
     if request.method == 'POST':
+        print(f"[MATCH POST] Keys received: {list(request.POST.keys())}")
         resume_id = request.POST.get('resume_id')
-        jd_title = request.POST.get('jd_title')
-        jd_text = request.POST.get('jd_text')
+        jd_title = request.POST.get('jd_title') or request.POST.get('job_title') or 'Untitled Position'
+        jd_text = request.POST.get('jd_text') or request.POST.get('job_description') or ''
+        job_url = request.POST.get('job_url', '').strip()
+        company = request.POST.get('company', '').strip()
+        
+        if not resume_id:
+            messages.error(request, 'Please select a resume to match against.')
+            print('[MATCH POST] Missing resume_id; redirecting back to form')
+            return redirect('match_job')
+        
+        if not jd_text:
+            messages.error(request, 'Provide a job description (pasted text) before analyzing. URL scraping is not yet implemented.')
+            print('[MATCH POST] Missing job description text; redirecting back to form')
+            return redirect('match_job')
+        
+        print(f"[MATCH START] Resume ID: {resume_id}, JD Title: {jd_title}, Company: {company}")
+        if job_url:
+            print(f"[MATCH POST] Job URL provided: {job_url} (currently unused)")
         
         resume = get_object_or_404(Resume, id=resume_id, user=request.user)
+        print(f"[MATCH] Resume found: {resume.filename}")
         
         jd = JobDescription.objects.create(
             user=request.user,
             title=jd_title,
             raw_text=jd_text
         )
+        print(f"[MATCH] JobDescription created: {jd.id}")
         
+        print("[MATCH] Parsing JD sections...")
         jd_sections = nlp_service.parse_jd_sections(jd_text)
+        if company:
+            jd_sections['company'] = company
         jd.parsed_sections = jd_sections
         jd.save()
+        print(f"[MATCH] JD sections parsed: {list(jd_sections.keys())}")
         
         resume_text = resume.parsed_text if resume.parsed_text else resume.latex_source or ''
         
         if not resume.parsed_sections:
+            print("[MATCH] Parsing resume sections...")
             resume.parsed_sections = nlp_service.parse_resume_sections(resume_text)
             resume.save()
+            print(f"[MATCH] Resume sections parsed: {list(resume.parsed_sections.keys())}")
         
+        print("[MATCH] Computing match score (this may take a while)...")
         match_result = scoring_service.compute_match_score(
             resume_text,
             jd_text,
             resume.parsed_sections,
             jd_sections
         )
+        print(f"[MATCH] Match score computed: {match_result['final_score']}")
         
         match = MatchAttempt.objects.create(
             user=request.user,
@@ -485,13 +518,21 @@ def match_job(request):
             profession_match_flag=match_result['profession_match_flag'],
             profession_similarity=match_result['profession_similarity']
         )
+        print(f"[MATCH COMPLETE] MatchAttempt created: {match.id}")
         
         log_action(request.user, 'match', {'match_id': match.id, 'score': match.final_score}, request)
         
         messages.success(request, 'Match analysis completed!')
         return redirect('match_result', match_id=match.id)
     
-    return render(request, 'match/match.html', {'resumes': resumes})
+    print("[MATCH VIEW] Rendering match input page")
+    context = {
+        'profile': profile,
+        'resumes': resumes,
+        'recent_matches': recent_matches,
+        'total_matches': total_matches,
+    }
+    return render(request, 'match/match.html', context)
 
 
 @login_required

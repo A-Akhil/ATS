@@ -246,8 +246,41 @@ ats_checker/              # Django project
 - Profile view now renders publications, achievements, and leadership sections so saved data is visible.
 - Resume generation now passes contact/location plus publications, achievements, leadership to Gemini so LaTeX output can include optional sections.
 - Gemini prompt updated to forbid renaming section headings (e.g., ensures "Projects" stays as-is instead of "Selected Projects").
+- Match flow now logs GET/POST entry plus detailed NLP, scoring, and Gemini steps to trace performance bottlenecks.
 - Pending: manual onboarding submission to confirm publications persist and appear; verify optional sections remain populated after revisiting form; re-generate resume to confirm optional data shows in LaTeX.
 **Status**: Investigation in progress; migrations/testing outstanding.
+
+## Task Notes (2025-11-02)
+
+### Goals
+- Align profession mismatch messaging with latest user guidance so alerts only appear when the AI reviewer explicitly confirms a mismatch.
+- Expand the AI review so candidates receive actionable guidance focused on improving their ATS score, without referencing underlying BERT computations.
+
+### Observations
+- `core/services/scoring_service.py` flags `profession_mismatch` before the Gemini review and keeps that flag for persistence even when the AI overrides the score.
+- `core/templates/match/result.html` shows the mismatch banner whenever `profession_match_flag` is false, so users still see red warnings after an AI override.
+- Gemini validation currently returns scores, reason, and suggestion but does not expose an explicit profession mismatch indicator.
+- Latest POST attempt hit a ValueError because the JSON schema example inside the Gemini prompt uses literal braces within an f-string; Python interprets these as formatting tokens.
+- Gemini’s current `suggestion` string is concise and occasionally references scoring; user wants a fuller review narrative focusing on resume improvements against the JD without mentioning BERT.
+
+### Assumptions
+- Updating the Gemini prompt to include a `profession_mismatch` boolean and accompanying rationale will not break existing flows; older records without the new field must still render safely.
+- Users prefer a softer note when the AI clears the mismatch rather than surfacing the original hard gate.
+
+### Plan
+1. Extend the Gemini validation prompt to request `profession_mismatch` and `profession_reason` fields while maintaining backward compatibility.
+2. Adjust `compute_match_score` to track the initial gating flag separately, defer the final mismatch outcome to Gemini when available, and surface both states in `breakdown_details`.
+3. Update the match result template to reference the final mismatch outcome and optionally display the AI rationale when it flags a mismatch.
+4. Retest the match flow to ensure final scores, banners, and suggestions align with the AI reviewer’s guidance.
+5. Escape literal braces in the Gemini JSON response example so the prompt renders correctly during f-string interpolation.
+6. Update the Gemini prompt to produce a richer `review` field that avoids mentioning BERT values and focuses on tailored improvement guidance, then surface that review in the results page.
+
+### Progress
+- Updated Gemini validation prompt to capture `profession_mismatch` and `profession_reason`, ensuring the reviewer’s stance is explicit.
+- Refactored `compute_match_score` to preserve the initial gate, honor the AI override, and record both initial and final mismatch states plus rationale for template use.
+- Adjusted the match result template to display the AI-provided profession reason only when a mismatch persists.
+- Escaped literal braces in the Gemini prompt so f-string interpolation no longer raises a ValueError during match analysis.
+- Enhanced the Gemini prompt to request a multi-sentence resume review and a separate quick tip, ensured the scoring service stores this review as the main guidance, and updated the result template to surface the review and tip without mentioning BERT.
 
 ## Summary of All Fixes Applied (2025-01-18)
 
@@ -397,6 +430,36 @@ The Django ATS Resume Checker application is now fully implemented with:
      * Core Concepts (optional)
      * Programming Languages (required)
      * Frameworks & Libraries (optional)
+
+   ### Match Flow Alignment (Nov 2, 2025)
+   - Identified mismatch between `match_job` POST expectations (`resume_id`, `jd_title`, `jd_text`) and `match/match.html` form (`job_description`, missing resume picker), explaining why POST branch never executed.
+   - Updated `match_job` view to log incoming POST keys, validate request payload, and provide user-facing error messages when required fields are absent; also pass `profile`, `recent_matches`, and `total_matches` context so template warnings/history render with real data.
+   - Added resume selector, required job title input, and renamed job description textarea (`jd_text`) in `match/match.html`; ensured helpful guidance while keeping Tailwind/Alpine styling intact.
+   - Clarified that URL scraping is not yet implemented by enforcing pasted JD text and logging provided URLs for future wiring.
+
+   ### Match Submit UX Bug (Oct 31, 2025)
+   - Reported behavior: clicking "Analyze" does not fire POST; server logs show only GETs.
+   - Observed form uses Alpine `analyzing` flag set on button click; when HTML validation fails (e.g., missing required fields or hidden `jd_text`), the click handler still disables the button, leaving no way to resubmit.
+   - Hidden `jd_text` remains `required` even when URL tab selected, causing silent validation failure and reinforcing the stuck state.
+   - Plan: move `analyzing` toggle to form `@submit` handler (runs only on valid submits), remove button `@click`, and bind `required` attribute of `jd_text` to `inputMethod === 'paste'` so URL mode no longer fails client-side while backend still enforces presence.
+
+   ### Match Result Rendering Gap (Oct 31, 2025)
+   - After successful match POST (MatchAttempt id 1), `/match/<id>/result/` renders but page is blank; template currently empty aside from `{% extends 'base.html' %}`.
+   - Need to construct result view template leveraging existing `match` context: headline score, profession match warning (since gating zeroed score), breakdown tables, Gemini suggestions (`match.suggestion_text`), and links to rerun or go back.
+   - Ensure template gracefully handles missing optional data (e.g., `gemini_correction` may be null) and surfaces logging-friendly details for debugging.
+   - Plan: build structured Tailwind layout with summary card, weighted breakdown (education/skills/experience), gap lists from `match.breakdown_details`, show `match.job_description.raw_text` toggle, and action buttons for retry/download.
+   - Implemented `match/result.html` with full score breakdown, profession fit, Gemini reason, matched/missing skill lists, suggestion card, job description toggle, resume links, and navigation buttons. Layout uses Tailwind utilities consistent with existing design and handles missing data via template fallbacks.
+
+   ### Gemini Validation Always Runs (Oct 31, 2025)
+   - Original scoring logic short-circuited on profession mismatch, returning before contacting Gemini; UI message misleadingly claimed API unreachable and user couldn't verify the decision.
+   - Refactored `compute_match_score` to always compute section similarities and invoke Gemini. When mismatch occurs we still zero the final score per gating rules but preserve Gemini's response (reason/suggestion) for display.
+   - Added mismatch-specific messaging and ensured fallback suggestion remains helpful if Gemini fails. Logs now show `[GEMINI]` entries even for mismatched roles.
+
+   ### Gemini Override for Mismatch (Oct 31, 2025)
+   - After enabling Gemini calls on mismatches, final score still locked to 0 even when Gemini returned 70; user wants Gemini to influence score despite mismatch.
+   - Plan: allow Gemini's `final_score` to override the mismatch zeroing while capping via `partial_credit_cap`, keep `profession_match_flag` false, and surface caution messaging in result template.
+   - Update breakdown metadata to indicate when Gemini override occurred so UI can flag the caution note.
+   - Implemented override so AI review score becomes final (clamped 0-100) even when profession gate triggers, while still flagging mismatch in breakdown. Simplified UI to remove Gemini branding and caution copy—final score card now shows the AI-adjusted score directly, and recommendation section focuses on improvement steps only.
      * Tools & Platforms (optional)
    
 3. **Form Features**:

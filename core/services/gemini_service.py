@@ -56,7 +56,9 @@ Make sure all special characters are properly escaped for LaTeX.
             }
     
     def validate_match_scores(self, resume_sections, jd_sections, bert_scores, profession_similarity):
+        print("[GEMINI] Validating match scores...")
         if not self.client:
+            print("[GEMINI WARNING] API client not configured")
             return None
         
         prompt = f"""
@@ -80,23 +82,28 @@ BERT Scores (0-1 scale):
 - Profession Similarity: {profession_similarity}
 
 Please provide:
-1. Corrected scores (0-1 scale) if you disagree with BERT
-2. A brief reason for any corrections
-3. One concise improvement suggestion for the candidate
-4. Final recommended score (0-100 scale)
+1. Corrected scores (0-1 scale) if you disagree with BERT (do not mention these scores in your written guidance)
+2. Whether the profession truly mismatches (boolean) and a brief rationale when true
+3. A concise resume review (2-3 sentences) explaining how the candidate can improve against this job description; avoid any mention of underlying model names or BERT scores
+4. One short actionable tip the candidate can implement immediately
+5. Final recommended score (0-100 scale)
 
 Return your response ONLY as a valid JSON object with this exact structure:
 {{
-  "education_score": <float 0-1>,
-  "skills_score": <float 0-1>,
-  "experience_score": <float 0-1>,
-  "final_score": <float 0-100>,
-  "reason": "<brief explanation>",
-  "suggestion": "<one-sentence improvement>"
+    "education_score": <float 0-1>,
+    "skills_score": <float 0-1>,
+    "experience_score": <float 0-1>,
+    "final_score": <float 0-100>,
+    "profession_mismatch": <true | false>,
+    "profession_reason": "<brief explanation if profession_mismatch is true, otherwise note alignment>",
+    "review": "<2-3 sentence improvement guidance without referencing BERT>",
+    "suggestion": "<one-sentence actionable tip>",
+    "reason": "<brief explanation of score adjustments>"
 }}
 """
         
         try:
+            print("[GEMINI] Sending validation request to Gemini API...")
             response = self.client.models.generate_content(
                 model='gemini-2.0-flash-001',
                 contents=prompt,
@@ -105,6 +112,7 @@ Return your response ONLY as a valid JSON object with this exact structure:
                     temperature=0.2
                 )
             )
+            print("[GEMINI] Response received from Gemini API")
             response_text = response.text.strip()
             
             response_text = re.sub(r'^```json\s*', '', response_text)
@@ -112,10 +120,12 @@ Return your response ONLY as a valid JSON object with this exact structure:
             response_text = re.sub(r'\s*```$', '', response_text)
             response_text = response_text.strip()
             
+            print(f"[GEMINI] Parsing JSON response...")
             correction_data = json.loads(response_text)
+            print(f"[GEMINI] Validation complete - Final score: {correction_data.get('final_score')}")
             return correction_data
         except Exception as e:
-            print(f"Gemini validation error: {e}")
+            print(f"[GEMINI ERROR] Validation error: {e}")
             return None
     
     def detect_profession(self, text):

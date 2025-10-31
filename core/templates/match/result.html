@@ -1,1 +1,181 @@
 {% extends 'base.html' %}
+
+{% block title %}Match Result{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+	<div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+		<div>
+			<p class="text-sm text-gray-500">Ran on {{ match.created_at|date:"M d, Y - g:i A" }}</p>
+			<h1 class="text-3xl font-bold text-gray-900">{{ match.job_description.title|default:"Match Result" }}</h1>
+			<p class="text-sm text-gray-500">Resume: {{ match.resume.filename }}</p>
+		</div>
+		<div class="bg-white rounded-2xl shadow-md px-6 py-4 text-center">
+			<p class="text-xs uppercase tracking-wide text-gray-500">Final Score</p>
+			<p class="text-4xl font-extrabold {% if match.final_score >= 70 %}text-green-600{% elif match.final_score >= 50 %}text-yellow-500{% else %}text-red-500{% endif %}">
+				{{ match.final_score|floatformat:1 }}%
+			</p>
+		</div>
+	</div>
+
+	{% if not match.profession_match_flag %}
+	<div class="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 mb-6">
+		<div class="flex items-center gap-3">
+			<i class="fas fa-exclamation-triangle"></i>
+			<div>
+				<p class="font-semibold">Profession mismatch detected</p>
+				<p class="text-sm">{{ match.breakdown_details.profession_reason|default:match.breakdown_details.message|default:"The role differs significantly from your current profile." }}</p>
+			</div>
+		</div>
+	</div>
+	{% endif %}
+
+	<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+		<div class="lg:col-span-2 bg-white rounded-xl shadow-sm p-6">
+			<h2 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
+				<i class="fas fa-chart-pie text-purple-600"></i>
+				Score Breakdown
+			</h2>
+			{% with weights=match.breakdown_details.weights_used %}
+			<div class="mt-4 space-y-4">
+				<div class="flex items-center justify-between">
+					<div>
+						<p class="font-medium text-gray-800">Education</p>
+						<p class="text-sm text-gray-500">Weight {{ weights.education|default:0|floatformat:2 }}</p>
+					</div>
+					<span class="text-xl font-semibold text-gray-900">{{ match.bert_scores.education|default:0|floatformat:2 }}</span>
+				</div>
+				<div class="flex items-center justify-between">
+					<div>
+						<p class="font-medium text-gray-800">Skills</p>
+						<p class="text-sm text-gray-500">Weight {{ weights.skills|default:0|floatformat:2 }}</p>
+					</div>
+					<span class="text-xl font-semibold text-gray-900">{{ match.bert_scores.skills|default:0|floatformat:2 }}</span>
+				</div>
+				<div class="flex items-center justify-between">
+					<div>
+						<p class="font-medium text-gray-800">Experience</p>
+						<p class="text-sm text-gray-500">Weight {{ weights.experience|default:0|floatformat:2 }}</p>
+					</div>
+					<span class="text-xl font-semibold text-gray-900">{{ match.bert_scores.experience|default:0|floatformat:2 }}</span>
+				</div>
+				<div class="flex items-center justify-between border-t pt-4">
+					<div>
+						<p class="font-medium text-gray-800">Weighted Composite</p>
+						{% if match.breakdown_details.transferable_skills %}
+						<p class="text-xs text-amber-600">Capped due to low profession similarity</p>
+						{% endif %}
+					</div>
+					<span class="text-xl font-semibold text-gray-900">{{ match.bert_scores.final|default:match.final_score|floatformat:2 }}</span>
+				</div>
+			</div>
+			{% endwith %}
+		</div>
+
+		<div class="bg-white rounded-xl shadow-sm p-6">
+			<h2 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
+				<i class="fas fa-user-check text-indigo-600"></i>
+				Profession Fit
+			</h2>
+			<div class="mt-4 space-y-2">
+				<p class="text-sm text-gray-600">Similarity: {{ match.breakdown_details.profession_similarity|default:match.profession_similarity|floatformat:2 }}</p>
+				{% if match.profession_match_flag %}
+				<p class="text-sm text-green-600 flex items-center gap-2"><i class="fas fa-check-circle"></i> Role is aligned with your profile.</p>
+				{% else %}
+				<p class="text-sm text-red-600 flex items-center gap-2"><i class="fas fa-times-circle"></i> Role differs from your current professional focus.</p>
+				{% endif %}
+			</div>
+		</div>
+	</div>
+
+	<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+		<div class="bg-white rounded-xl shadow-sm p-6">
+			<h2 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
+				<i class="fas fa-check text-green-600"></i>
+				Matched Skills
+			</h2>
+			{% with skills=match.breakdown_details.skills_breakdown %}
+				{% if skills.matched %}
+				<ul class="mt-4 space-y-2 text-sm text-gray-700">
+					{% for skill in skills.matched %}
+					<li class="flex items-center gap-2"><i class="fas fa-check-circle text-green-500"></i>{{ skill }}</li>
+					{% endfor %}
+				</ul>
+				{% else %}
+				<p class="mt-4 text-sm text-gray-500">No overlapping skills detected.</p>
+				{% endif %}
+			{% endwith %}
+		</div>
+
+		<div class="bg-white rounded-xl shadow-sm p-6">
+			<h2 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
+				<i class="fas fa-exclamation-circle text-amber-500"></i>
+				Skills to Strengthen
+			</h2>
+			{% with skills=match.breakdown_details.skills_breakdown %}
+				{% if skills.missing %}
+				<ul class="mt-4 space-y-2 text-sm text-gray-700">
+					{% for skill in skills.missing %}
+					<li class="flex items-center gap-2"><i class="fas fa-lightbulb text-amber-500"></i>{{ skill }}</li>
+					{% endfor %}
+				</ul>
+				{% else %}
+				<p class="mt-4 text-sm text-gray-500">No major skill gaps identified.</p>
+				{% endif %}
+			{% endwith %}
+		</div>
+	</div>
+
+	<div class="bg-white rounded-xl shadow-sm p-6 mb-6">
+		<h2 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
+			<i class="fas fa-comments text-purple-500"></i>
+			AI Review
+		</h2>
+		<p class="mt-4 text-gray-700 whitespace-pre-line">{{ match.suggestion_text|default:"Tailor your resume to emphasize the most relevant skills and accomplishments for this role." }}</p>
+		{% if match.breakdown_details.improvement_tip %}
+		<div class="mt-5 rounded-lg border border-purple-200 bg-purple-50 p-4">
+			<p class="text-sm font-semibold text-purple-700 flex items-center gap-2"><i class="fas fa-lightbulb"></i> Quick Tip</p>
+			<p class="mt-1 text-sm text-purple-800">{{ match.breakdown_details.improvement_tip }}</p>
+		</div>
+		{% endif %}
+	</div>
+
+	<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+		<div class="bg-white rounded-xl shadow-sm p-6">
+			<h2 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
+				<i class="fas fa-briefcase text-indigo-500"></i>
+				Job Description
+			</h2>
+			<details class="mt-4 group">
+				<summary class="cursor-pointer text-sm text-purple-600 group-open:text-purple-800">Toggle job description</summary>
+				<pre class="mt-3 whitespace-pre-wrap text-sm text-gray-700 bg-gray-50 border border-gray-200 rounded-lg p-4">{{ match.job_description.raw_text }}</pre>
+			</details>
+		</div>
+		<div class="bg-white rounded-xl shadow-sm p-6">
+			<h2 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
+				<i class="fas fa-file-alt text-teal-500"></i>
+				Resume Snapshot
+			</h2>
+			<p class="mt-3 text-sm text-gray-600">Source: {{ match.resume.get_source_type_display }}</p>
+			<p class="text-sm text-gray-600">Created: {{ match.resume.created_at|date:"M d, Y - g:i A" }}</p>
+			<div class="mt-4 space-y-2">
+				<a href="{% url 'resume_view' match.resume.id %}" class="inline-flex items-center gap-2 text-sm text-purple-600 hover:text-purple-700">
+					<i class="fas fa-eye"></i> View Resume
+				</a>
+				<a href="{% url 'resume_download' match.resume.id %}" class="inline-flex items-center gap-2 text-sm text-purple-600 hover:text-purple-700">
+					<i class="fas fa-download"></i> Download PDF
+				</a>
+			</div>
+		</div>
+	</div>
+
+	<div class="mt-8 flex flex-wrap gap-3">
+		<a href="{% url 'match_job' %}" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-purple-500 text-purple-600 hover:bg-purple-50 transition">
+			<i class="fas fa-redo"></i>Run Another Match
+		</a>
+		<a href="{% url 'dashboard' %}" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-900 text-white hover:bg-gray-800 transition">
+			<i class="fas fa-chart-bar"></i>Back to Dashboard
+		</a>
+	</div>
+</div>
+{% endblock %}
