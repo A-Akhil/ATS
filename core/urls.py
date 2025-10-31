@@ -15,6 +15,7 @@ urlpatterns = [
     path('resume/<int:resume_id>/latex/', views.resume_latex_download, name='resume_latex_download'),
     path('match/', views.match_job, name='match_job'),
     path('match/<int:match_id>/result/', views.match_result, name='match_result'),
-    path('admin/panel/', views.admin_panel, name='admin_panel'),
-    path('admin/settings/', views.admin_settings, name='admin_settings'),
+    path('admin-panel/', views.admin_panel, name='admin_panel'),
+    path('admin-panel/settings/', views.admin_settings, name='admin_settings'),
+    path('admin-panel/data/', views.admin_data, name='admin_data'),
 ]

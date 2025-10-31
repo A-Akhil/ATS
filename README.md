@@ -114,7 +114,7 @@ Or use the provided Docker setup in the `latex-to-pdf/` directory.
 
 ### For Admins
 
-1. **Access Admin Panel**: Navigate to `/admin/panel/`
+1. **Access Admin Panel**: Navigate to `/admin-panel/`
 2. **Manage Users**: View all registered users
 3. **View Match Logs**: See all match attempts and scores
 4. **Configure Scoring**: Adjust weights for education (35%), skills (45%), experience (20%)

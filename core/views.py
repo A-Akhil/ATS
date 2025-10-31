@@ -43,6 +43,11 @@ def log_action(user, action_type, data=None, request=None):
     )
 
 
+def ensure_profile(user):
+    profile, _ = Profile.objects.get_or_create(user=user)
+    return profile
+
+
 def landing(request):
     if request.user.is_authenticated:
         return redirect('dashboard')
@@ -79,26 +84,29 @@ def login_view(request):
     if request.user.is_authenticated:
         return redirect('dashboard')
     
+    next_url = request.GET.get('next') or request.POST.get('next') or 'dashboard'
+    email_value = ''
+    
     if request.method == 'POST':
-        email = request.POST.get('username')
+        email = request.POST.get('username', '').strip()
         password = request.POST.get('password')
-        
-        try:
-            user = User.objects.get(email=email)
-            user = authenticate(request, username=user.username, password=password)
-        except User.DoesNotExist:
-            user = None
+        email_value = email
+        user = authenticate(request, username=email, password=password)
         
         if user is not None:
             login(request, user)
             log_action(user, 'login', {}, request)
             messages.success(request, f'Welcome back, {user.first_name}!')
-            return redirect('dashboard')
+            return redirect(next_url or 'dashboard')
         else:
             messages.error(request, 'Invalid email or password')
     
     form = LoginForm()
-    return render(request, 'auth/login.html', {'form': form})
+    return render(request, 'auth/login.html', {
+        'form': form,
+        'next_url': next_url,
+        'email_value': email_value,
+    })
 
 
 @login_required
@@ -111,7 +119,7 @@ def logout_view(request):
 
 @login_required
 def onboarding(request):
-    profile = request.user.profile
+    profile = ensure_profile(request.user)
     
     if request.method == 'POST':
         # Contact Information
@@ -255,7 +263,7 @@ def onboarding(request):
 
 @login_required
 def dashboard(request):
-    profile = request.user.profile
+    profile = ensure_profile(request.user)
     resumes = request.user.resumes.all()[:5]
     recent_matches = request.user.match_attempts.all()[:5]
     
@@ -270,7 +278,7 @@ def dashboard(request):
 
 @login_required
 def profile_view(request):
-    profile = request.user.profile
+    profile = ensure_profile(request.user)
     
     if request.method == 'POST':
         action = request.POST.get('action')
@@ -344,7 +352,7 @@ def profile_view(request):
 
 @login_required
 def generate_resume(request):
-    profile = request.user.profile
+    profile = ensure_profile(request.user)
     
     if request.method == 'POST':
         profile_data = {
@@ -442,7 +450,7 @@ def resume_latex_download(request, resume_id):
 @login_required
 def match_job(request):
     print(f"[MATCH VIEW] {request.method} request to /match/ by {request.user.email}")
-    profile = request.user.profile
+    profile = ensure_profile(request.user)
     resumes = request.user.resumes.order_by('-created_at')
     resumes_count = resumes.count()
     recent_matches = request.user.match_attempts.all()[:5]
@@ -543,7 +551,7 @@ def match_result(request, match_id):
 
 @login_required
 def admin_panel(request):
-    if request.user.role != 'admin':
+    if request.user.role != 'admin' and not request.user.is_superuser:
         messages.error(request, 'Access denied')
         return redirect('dashboard')
     
@@ -557,13 +565,15 @@ def admin_panel(request):
         'matches': matches,
         'logs': logs,
         'settings': settings_obj,
+        'hide_primary_nav': True,
+        'admin_nav_active': 'dashboard',
     }
     return render(request, 'admin_panel/dashboard.html', context)
 
 
 @login_required
 def admin_settings(request):
-    if request.user.role != 'admin':
+    if request.user.role != 'admin' and not request.user.is_superuser:
         messages.error(request, 'Access denied')
         return redirect('dashboard')
     
@@ -579,4 +589,38 @@ def admin_settings(request):
     else:
         form = AdminSettingsForm(instance=settings_obj)
     
-    return render(request, 'admin_panel/settings.html', {'form': form, 'settings': settings_obj})
+    return render(request, 'admin_panel/settings.html', {
+        'form': form,
+        'settings': settings_obj,
+        'hide_primary_nav': True,
+        'admin_nav_active': 'settings',
+    })
+
+
+@login_required
+def admin_data(request):
+    if request.user.role != 'admin' and not request.user.is_superuser:
+        messages.error(request, 'Access denied')
+        return redirect('dashboard')
+
+    users = list(User.objects.select_related('profile').all().order_by('-created_at')[:50])
+    for user in users:
+        profile = ensure_profile(user)
+        user.profile = profile
+    resumes = Resume.objects.select_related('user').order_by('-created_at')[:50]
+    job_descriptions = JobDescription.objects.select_related('user').order_by('-created_at')[:50]
+    matches = (
+        MatchAttempt.objects
+        .select_related('user', 'resume', 'job_description')
+        .order_by('-created_at')[:50]
+    )
+
+    context = {
+        'users': users,
+        'resumes': resumes,
+        'job_descriptions': job_descriptions,
+        'matches': matches,
+        'hide_primary_nav': True,
+        'admin_nav_active': 'data',
+    }
+    return render(request, 'admin_panel/data.html', context)

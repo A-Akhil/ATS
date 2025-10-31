@@ -250,6 +250,42 @@ ats_checker/              # Django project
 - Pending: manual onboarding submission to confirm publications persist and appear; verify optional sections remain populated after revisiting form; re-generate resume to confirm optional data shows in LaTeX.
 **Status**: Investigation in progress; migrations/testing outstanding.
 
+## Task Notes (2025-11-04)
+
+### Goals
+- Fix the 404 when visiting `/admin/settings/` by moving the custom admin settings page away from Django's built-in admin namespace.
+- Streamline the custom admin navigation so the user-facing links (Dashboard, Profile, Resume, Match Job) disappear on admin pages, leaving only the tooling relevant to admins (database visibility and scoring controls).
+- Replace the blank admin settings template with a Tailwind-styled form so scoring parameters can be adjusted without resorting to Django admin.
+- Build a custom data viewer within the admin panel so admins can browse core records without being redirected to Django's built-in interface.
+
+### Observations
+- `core/urls.py` still exposes `admin_settings` at `admin/settings/`, which collides with Django's admin catch-all; the new admin dashboard already lives under `/admin-panel/`.
+- The shared navigation in `core/templates/base.html` renders the primary user links for every authenticated page; no flag exists to suppress it for admin-only screens.
+- Both `admin_panel` and `admin_settings` views currently pass context without any signal to adjust the layout, so templates cannot change navigation behavior.
+- Links inside `core/templates/admin_panel/dashboard.html` still target the old `admin_settings` path and should follow the revised route once it moves under `/admin-panel/`.
+- `core/templates/admin_panel/settings.html` is empty, leaving `/admin-panel/settings/` blank even after routing was fixed.
+- Admin dashboard quick actions still reference Django's built-in admin for data browsing, which the user specifically wants to avoid.
+
+### Plan
+1. Update `core/urls.py` so `admin_settings` lives at `admin-panel/settings/`, freeing the `/admin/` namespace for Django's built-in admin without clashes.
+2. Inject a `hide_primary_nav` flag (or similar) from both admin views and teach `base.html` to skip rendering the standard Dashboard/Profile/Resume/Match Job links when the flag is present.
+3. Provide a minimal admin-specific top bar when the primary nav is hidden so admins can still reach the dashboard and scoring settings quickly.
+4. Replace all template references to the old settings URL with the new `admin-panel` variant and smoke test navigation after the change.
+5. Implement a styled settings template that renders `AdminSettingsForm`, shows current weights, and surfaces validation errors inline.
+6. Introduce an `admin_data` view and template that list recent Users, Resumes, Job Descriptions, and Match Attempts in Tailwind tables so admins can review database content without Django admin.
+7. Update admin navigation and quick actions to link to the new data viewer instead of Django's built-in interface.
+
+### Progress
+- Re-pointed the custom admin settings route to `admin-panel/settings/`, eliminating the collision with Django's built-in admin URLs.
+- Passed a `hide_primary_nav` flag plus active tab marker from both admin views and reworked `base.html` to render a slim admin navigation with direct links to the overview, scoring controls, and Django's data admin.
+- Updated the admin dashboard hero buttons and quick actions so they now surface only the requested tools (custom data viewer and scoring configuration) and removed links to user-focused pages.
+- Built a fully-styled scoring settings page that renders `AdminSettingsForm`, shows current thresholds, and provides inline validation feedback.
+- Implemented a custom data viewer (`admin_panel/data.html`) plus supporting view and route, surfacing recent Users, Resumes, Job Descriptions, and Match Attempts within the Tailwind-styled admin experience.
+- Applied Tailwind styling directly to `AdminSettingsForm` widgets so inputs align visually with the rest of the admin UI.
+- Added vertical scrolling to each dataset table in the Platform Data Viewer so large collections remain manageable within the page.
+- Added per-user "View Details" modals that surface the full profile (contact info, education, experience, projects, certifications, publications, achievements, leadership) without leaving the data viewer.
+- Expanded job description cells to provide full text inside a scrollable container, preventing truncated qualification blurbs.
+
 ## Task Notes (2025-11-02)
 
 ### Goals
@@ -262,6 +298,8 @@ ats_checker/              # Django project
 - Gemini validation currently returns scores, reason, and suggestion but does not expose an explicit profession mismatch indicator.
 - Latest POST attempt hit a ValueError because the JSON schema example inside the Gemini prompt uses literal braces within an f-string; Python interprets these as formatting tokens.
 - Gemini’s current `suggestion` string is concise and occasionally references scoring; user wants a fuller review narrative focusing on resume improvements against the JD without mentioning BERT.
+- The profession similarity figure (e.g., 0.10) comes straight from the Sentence-BERT comparison in `compute_profession_similarity`; even if the AI subsequently rules the role aligned, that initial metric still reflects how different the raw text embeddings appear.
+- Admin account created via `createsuperuser` lacks an automatic `Profile`, causing `/dashboard/` (and other profile-dependent views) to crash with `User has no profile`.
 
 ### Assumptions
 - Updating the Gemini prompt to include a `profession_mismatch` boolean and accompanying rationale will not break existing flows; older records without the new field must still render safely.
@@ -274,6 +312,7 @@ ats_checker/              # Django project
 4. Retest the match flow to ensure final scores, banners, and suggestions align with the AI reviewer’s guidance.
 5. Escape literal braces in the Gemini JSON response example so the prompt renders correctly during f-string interpolation.
 6. Update the Gemini prompt to produce a richer `review` field that avoids mentioning BERT values and focuses on tailored improvement guidance, then surface that review in the results page.
+7. Introduce a reusable helper that guarantees a `Profile` exists for the current user (creating one on the fly when missing) and adopt it across dashboard/profile/resume/match views.
 
 ### Progress
 - Updated Gemini validation prompt to capture `profession_mismatch` and `profession_reason`, ensuring the reviewer’s stance is explicit.
@@ -281,6 +320,32 @@ ats_checker/              # Django project
 - Adjusted the match result template to display the AI-provided profession reason only when a mismatch persists.
 - Escaped literal braces in the Gemini prompt so f-string interpolation no longer raises a ValueError during match analysis.
 - Enhanced the Gemini prompt to request a multi-sentence resume review and a separate quick tip, ensured the scoring service stores this review as the main guidance, and updated the result template to surface the review and tip without mentioning BERT.
+- Implemented a Tailwind-styled admin dashboard template that surfaces platform KPIs, recent matches, quick admin actions, latest users, and system logs, powered by the existing `admin_panel` view context.
+- Updated routing so the custom admin dashboard lives at `/admin-panel/`, preventing clashes with Django’s built-in `/admin/` namespace.
+- Added an `ensure_profile` helper in views to auto-create a profile when absent, preventing `RelatedObjectDoesNotExist` errors for admin or freshly migrated accounts.
+- Updated the login flow to authenticate with the email-based username field, preserve `next` redirects (e.g., `/admin-panel/`), and keep the entered email populated when credentials fail.
+- Granted Django superusers access to the custom admin dashboard and settings even if their `role` field remains at the default `user` value.
+
+## Task Notes (2025-11-03)
+
+### Goals
+- Build a functional admin dashboard screen so admins can monitor users, recent matches, and key system metrics with the modern Tailwind/Alpine styling the user expects.
+
+### Observations
+- `core/views.py` already exposes an `admin_panel` view that gathers users, recent matches, logs, and settings, but the template `core/templates/admin_panel/dashboard.html` is empty.
+- Shared components (navigation, base styling) already exist via `base.html`, and other pages leverage Tailwind cards and gradients for visual consistency.
+- Admin-specific actions (weight tuning, viewing logs) should be surfaced, at least as quick links, even if the underlying forms already exist elsewhere (`admin_settings`).
+
+### Assumptions
+- The admin panel should focus on read-heavy cards (counts, recent activity, settings snapshot) and quick navigation; full CRUD tables can remain minimal for now.
+- Tailwind and Alpine are available globally via `base.html`, so the dashboard can use them without additional imports.
+- Metrics can be derived from the context provided by `admin_panel` (user count, recent matches, system logs) without extra queries.
+
+### Plan
+1. Design a three-section layout: KPI overview cards, activity tables (recent matches/users), and system insights (logs/settings).
+2. Implement the Tailwind-based template in `admin_panel/dashboard.html`, adding conditional handling for empty datasets.
+3. Ensure links point to existing routes like `admin_settings` and provide placeholders where functionality is planned.
+4. Verify the template renders without errors and update navigation breadcrumbs if needed.
 
 ## Summary of All Fixes Applied (2025-01-18)
 

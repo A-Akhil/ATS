@@ -153,12 +153,12 @@ class AdminSettingsForm(forms.ModelForm):
             'partial_credit_cap'
         ]
         widgets = {
-            'weight_education': forms.NumberInput(attrs={'step': '0.01', 'min': '0', 'max': '1'}),
-            'weight_skills': forms.NumberInput(attrs={'step': '0.01', 'min': '0', 'max': '1'}),
-            'weight_experience': forms.NumberInput(attrs={'step': '0.01', 'min': '0', 'max': '1'}),
-            'profession_zero_threshold': forms.NumberInput(attrs={'step': '0.01', 'min': '0', 'max': '1'}),
-            'profession_cap_threshold': forms.NumberInput(attrs={'step': '0.01', 'min': '0', 'max': '1'}),
-            'partial_credit_cap': forms.NumberInput(attrs={'step': '1', 'min': '0', 'max': '100'}),
+            'weight_education': forms.NumberInput(attrs={'step': '0.01', 'min': '0', 'max': '1', 'class': 'w-full rounded-xl border border-gray-200 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500'}),
+            'weight_skills': forms.NumberInput(attrs={'step': '0.01', 'min': '0', 'max': '1', 'class': 'w-full rounded-xl border border-gray-200 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500'}),
+            'weight_experience': forms.NumberInput(attrs={'step': '0.01', 'min': '0', 'max': '1', 'class': 'w-full rounded-xl border border-gray-200 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500'}),
+            'profession_zero_threshold': forms.NumberInput(attrs={'step': '0.01', 'min': '0', 'max': '1', 'class': 'w-full rounded-xl border border-gray-200 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500'}),
+            'profession_cap_threshold': forms.NumberInput(attrs={'step': '0.01', 'min': '0', 'max': '1', 'class': 'w-full rounded-xl border border-gray-200 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500'}),
+            'partial_credit_cap': forms.NumberInput(attrs={'step': '1', 'min': '0', 'max': '100', 'class': 'w-full rounded-xl border border-gray-200 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500'}),
         }
     
     def clean(self):
