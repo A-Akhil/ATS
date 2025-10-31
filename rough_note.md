@@ -313,6 +313,51 @@ ats_checker/              # Django project
 - Extended `match_job` to branch on resume source, validate uploads through `ResumeUploadForm`, extract PDF text, persist uploaded resumes, and reuse the scoring pipeline.
 - Introduced a resume source toggle plus file input in `match/match.html`, updated form attributes for multipart posts, and surfaced guidance for upload requirements.
 
+## Task Notes (2025-10-31) - BERT Scoring Calibration
+
+### Goals
+- Reduce the discrepancy between the baseline BERT composite score and the Gemini reviewer adjustments so that strong matches score higher even before AI validation.
+
+### Observations
+- Latest match log (Oct 31) shows uploaded resume resulted in BERT final 49.63 vs Gemini-adjusted 70 despite profession similarity 0.55 and 3/4 skills matched.
+- `parse_resume_sections` reports `Experience: 0 years` for the uploaded resume, indicating the regex missed "8+ years" phrasing; this drags the experience similarity to ~0.54.
+- Education extraction labels many resumes as `degree_level = unknown`, limiting the bonus applied when candidates meet/exceed the requirement.
+- Skills extraction relies on a static whitelist; exact-match weighting is modest (0.6) so 75% overlap can still land around 0.57.
+- Section parsing currently feeds whole-document text into similarity scoring, diluting section-specific semantics.
+
+### Diagnosis
+- **Root Cause 1**: Experience year detection only captures plain "5 years" phrases and ignores ranges, plus signs, or "more than X years" statements common in resumes and JDs.
+- **Root Cause 2**: Education parser lacks broader degree synonyms (e.g., "MS", "MSc", "Bachelor's") and does not prioritise highest-degree hits when multiple keywords exist, so candidates lose the level bonus.
+- **Root Cause 3**: Section extraction does not isolate Education/Experience/Skills blocks, causing embedding similarity to compare entire documents rather than focused snippets, reducing cosine similarity.
+- **Root Cause 4**: Skill score weighting undervalues high exact-match ratios compared to semantic similarity noise.
+
+### Plan
+1. Introduce lightweight section segmentation to isolate education, experience, and skills blocks before running extractors, with graceful fallbacks when headings are missing.
+2. Expand degree detection patterns (MS/MSc/BSc/BEng etc.) and compute the highest-degree level to restore the level bonus when candidates exceed JD requirements.
+3. Overhaul experience year parsing to support ranges ("3-5 years"), plus signs ("5+ years"), and comparative phrases ("at least 6 years"), tracking the maximum explicit value.
+4. Adjust skill similarity weighting to favour exact overlaps (e.g., 0.75 exact / 0.25 semantic) so high overlap translates to higher section scores.
+5. Enrich experience similarity by rewarding overlapping job titles along with years/semantic match, capping at 1.0.
+6. Re-run a sample match to confirm BERT final moves closer to Gemini output without overshooting, and document residual gaps.
+
+### Open Questions
+- Do we need to surface a calibration dataset or admin tuning controls for further score alignment? (Pending user input.)
+
+### Progress
+- Added section segmentation in `NLPService` so education, skills, and experience extraction operate on focused snippets rather than the whole document.
+- Expanded degree detection patterns, deduplicated matches, and reworked education similarity heuristics to reward candidates who meet or exceed the required level.
+- Implemented comprehensive year parsing (ranges, plus signs, comparative phrases) and job-title harvesting to improve experience similarity scoring.
+- Rebalanced skill extraction/weighting with broader token capture, JS alias canonicalisation, and heavier emphasis on exact overlaps.
+- Updated experience similarity to blend years, semantic similarity, and job-title overlaps for a more representative section score.
+- Increased exact-match weighting in skills and tweaked experience year fallback so partial experience still contributes; awaiting validation on updated scores.
+- Capturing requirement blocks triggered by lines containing phrases like "minimum" or "required" so JD parsing preserves bullet runs, and adjusted date span math so ranges such as 2018-2022 report 5 full years.
+- Latest match (Google SWE JD vs uploaded resume) still lands at ~48 BERT score with only 2/6 JD skills matched and JD experience parsed as 0; requirements parser is only surfacing one bullet, so the skills extraction is likely missing multiword tech phrases embedded in requirements/responsibilities segments.
+- Need to enrich JD skill signals by harvesting keywords from the captured requirements block (and possibly responsibilities section) so they augment the JD skill list before computing overlap; also revisit experience extraction when JD text lacks explicit year numbers.
+- Augmented JD parsing so requirement bullets feed both the skills and experience extractors, deduplicating derived skills and reusing those lines when computing years, which should raise overlap counts whenever the job description embeds tech stacks under "Requirements" headings.
+- Tightened requirement harvesting to treat lines ending with ':' as section headers and stay latched onto "Minimum/Preferred/Responsibilities" blocks so bullet points survive blank-line spacing and feed downstream extractors.
+- Restored `_segment_document` control flow after catching an indentation regression; temporarily disabled the "About the job" skip since it was stripping too much JD context.
+- Added a profession mismatch override path in `scoring_service` so if at least half of the JD skills are matched we bypass the hard zeroing gate and surface the original composite score instead of 0.
+- Tweaked the partial-credit cap so when profession similarity is low but skill overlap ≥ 50% the cap increases by roughly 1.5x, letting strong functional matches climb above the old 30-point ceiling.
+
 ## Task Notes (2025-11-02)
 
 ### Goals

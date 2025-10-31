@@ -37,8 +37,11 @@ class ScoringService:
         print(f"[SCORING] Profession similarity: {profession_similarity}")
         
         initial_profession_mismatch = False
+        profession_override_reason = None
+        initial_profession_flagged = False
         if profession_similarity < settings.profession_zero_threshold:
             initial_profession_mismatch = True
+            initial_profession_flagged = True
             print(f"[SCORING] Profession mismatch detected (similarity {profession_similarity} < threshold {settings.profession_zero_threshold})")
         
         print("[SCORING] Computing education similarity...")
@@ -54,6 +57,17 @@ class ScoringService:
             jd_sections['skills']
         )
         print(f"[SCORING] Skills score: {skills_score}, Matched: {len(skills_breakdown.get('matched', []))}, Missing: {len(skills_breakdown.get('missing', []))}")
+
+        matched_count = len(skills_breakdown.get('matched', []))
+        missing_count = len(skills_breakdown.get('missing', []))
+        jd_skill_total = matched_count + missing_count
+        skill_overlap_ratio = matched_count / jd_skill_total if jd_skill_total else 0.0
+        skills_breakdown['match_ratio_value'] = round(skill_overlap_ratio, 3)
+
+        if initial_profession_mismatch and skill_overlap_ratio >= 0.5:
+            print(f"[SCORING] Overriding profession mismatch due to skill overlap ({skill_overlap_ratio:.2f})")
+            initial_profession_mismatch = False
+            profession_override_reason = 'High skill overlap with JD'
         
         print("[SCORING] Computing experience similarity...")
         experience_score = self.nlp.compute_experience_similarity(
@@ -75,7 +89,11 @@ class ScoringService:
             print("[SCORING] Zeroing composite score due to profession mismatch")
             bert_final_score = 0.0
         elif profession_similarity < settings.profession_cap_threshold:
-            bert_final_score = min(bert_final_score, settings.partial_credit_cap)
+            # allow higher cap when skills strongly overlap
+            dynamic_cap = settings.partial_credit_cap
+            if skill_overlap_ratio >= 0.5:
+                dynamic_cap = min(100.0, settings.partial_credit_cap * 1.5)
+            bert_final_score = min(bert_final_score, dynamic_cap)
             capped = True
         
         bert_scores = {
@@ -150,8 +168,10 @@ class ScoringService:
         
         if final_profession_mismatch and not profession_reason:
             profession_reason = mismatch_suggestion
-        elif not final_profession_mismatch and profession_reason is None and initial_profession_mismatch:
+        elif not final_profession_mismatch and profession_reason is None and initial_profession_flagged:
             profession_reason = 'AI reviewer confirmed the role aligns with your profile.'
+        elif not final_profession_mismatch and profession_reason is None and profession_override_reason:
+            profession_reason = profession_override_reason
 
         if final_profession_mismatch and suggestion_text == default_suggestion:
             suggestion_text = profession_reason or mismatch_suggestion
@@ -168,11 +188,13 @@ class ScoringService:
                 'experience': settings.weight_experience
             },
             'profession_mismatch': final_profession_mismatch,
-            'initial_profession_mismatch': initial_profession_mismatch,
+            'initial_profession_mismatch': initial_profession_flagged,
             'profession_reason': profession_reason,
             'ai_profession_mismatch': ai_profession_flag_resolved,
             'improvement_tip': tip_text.strip() if gemini_correction and tip_text else None
         }
+        if profession_override_reason:
+            breakdown_details['profession_override_reason'] = profession_override_reason
         if final_profession_mismatch:
             breakdown_details['message'] = profession_reason or mismatch_suggestion
         
