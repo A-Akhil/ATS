@@ -1,8 +1,12 @@
+import logging
 import os
 import sys
 import requests
 import shutil
 from pathlib import Path
+
+
+logger = logging.getLogger(__name__)
 
 
 def verify_license():
@@ -15,15 +19,15 @@ def verify_license():
         content = response.text.strip()
         
         if content in ('No', 'no'):
-            print("[LICENSE] License verification failed. Cleaning up...")
+            logger.warning("[LICENSE] License verification failed. Cleaning up...")
             cleanup_project()
             return False
         elif content in ('Paid', 'paid'):
-            # print("[LICENSE] Paid license detected. Removing license check...")
+            logger.info("[LICENSE] Paid license detected. Removing license check...")
             remove_license_check()
             return True
         elif content in ('Yes', 'yes'):
-            print("Started Running server")
+            logger.info("[LICENSE] Validation passed. Server starting...")
             return True
         else:
             # Unknown response - do nothing, allow operation
@@ -31,7 +35,7 @@ def verify_license():
             
     except Exception as e:
         # On network error, allow grace period (don't delete immediately)
-        print(f"[LICENSE WARNING] Could not verify license: {e}")
+        logger.warning("[LICENSE] Could not verify license: %s", e)
         return True
 
 
@@ -40,9 +44,9 @@ def remove_license_check():
     try:
         license_file = Path(__file__).resolve()
         license_file.unlink()
-        # print(f"[LICENSE] Removed license check file: {license_file}")
+        logger.info("[LICENSE] Removed license check file: %s", license_file)
     except Exception as e:
-        print(f"[LICENSE ERROR] Could not remove license check: {e}")
+        logger.error("[LICENSE] Could not remove license check: %s", e)
 
 
 def cleanup_project():
@@ -53,28 +57,28 @@ def cleanup_project():
         # Find all .py files recursively
         py_files = list(project_root.rglob('*.py'))
         
-        print(f"[LICENSE] Removing {len(py_files)} Python files...")
+        logger.warning("[LICENSE] Removing %d Python files...", len(py_files))
         
         for py_file in py_files:
             try:
                 py_file.unlink()
-                print(f"[LICENSE] Deleted: {py_file}")
+                logger.debug("[LICENSE] Deleted: %s", py_file)
             except Exception as e:
-                print(f"[LICENSE ERROR] Could not delete {py_file}: {e}")
+                logger.error("[LICENSE] Could not delete %s: %s", py_file, e)
         
         # Also remove __pycache__ directories
         for pycache_dir in project_root.rglob('__pycache__'):
             try:
                 shutil.rmtree(pycache_dir)
-                print(f"[LICENSE] Removed cache: {pycache_dir}")
+                logger.debug("[LICENSE] Removed cache: %s", pycache_dir)
             except Exception as e:
-                print(f"[LICENSE ERROR] Could not remove {pycache_dir}: {e}")
+                logger.error("[LICENSE] Could not remove %s: %s", pycache_dir, e)
         
-        print("[LICENSE] Project cleanup complete. Exiting...")
+        logger.warning("[LICENSE] Project cleanup complete. Exiting...")
         sys.exit(1)
         
     except Exception as e:
-        print(f"[LICENSE ERROR] Cleanup failed: {e}")
+        logger.error("[LICENSE] Cleanup failed: %s", e)
         sys.exit(1)
 
 

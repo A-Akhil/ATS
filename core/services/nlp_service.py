@@ -1,19 +1,23 @@
-from sentence_transformers import SentenceTransformer
-from sklearn.metrics.pairwise import cosine_similarity
+import logging
 import numpy as np
 import re
 from datetime import datetime
 from typing import Dict, List, Tuple, Optional
+from sentence_transformers import SentenceTransformer
+from sklearn.metrics.pairwise import cosine_similarity
+
+
+logger = logging.getLogger(__name__)
 
 
 class NLPService:
     def __init__(self):
         try:
-            print("[NLP] Loading SentenceTransformer model 'all-MiniLM-L6-v2'...")
+            logger.debug("[NLP] Loading SentenceTransformer model 'all-MiniLM-L6-v2'...")
             self.model = SentenceTransformer('all-MiniLM-L6-v2')
-            print("[NLP] SentenceTransformer model loaded successfully")
+            logger.debug("[NLP] SentenceTransformer model loaded successfully")
         except Exception as e:
-            print(f"[NLP ERROR] Error loading sentence transformer: {e}")
+            logger.exception("[NLP] Error loading sentence transformer")
             self.model = None
         # Degree hierarchy used for education comparisons (higher number = higher degree)
         self.level_hierarchy = {
@@ -409,18 +413,23 @@ class NLPService:
         }
     
     def parse_resume_sections(self, text: str) -> Dict:
-        print("[NLP] Parsing resume sections...")
+        logger.debug("[NLP] Parsing resume sections...")
         segmented = self._segment_document(text)
         result = {
             'education': self.extract_education(segmented.get('education', text)),
             'skills': self.extract_skills(segmented.get('skills', text)),
             'experience': self.extract_experience(segmented.get('experience', text))
         }
-        print(f"[NLP] Resume sections parsed - Education: {result['education']['degree_level']}, Skills: {len(result['skills'])}, Experience: {result['experience']['years']} years")
+        logger.debug(
+            "[NLP] Resume sections parsed - Education: %s, Skills: %d, Experience: %.2f years",
+            result['education']['degree_level'],
+            len(result['skills']),
+            result['experience']['years']
+        )
         return result
     
     def parse_jd_sections(self, text: str) -> Dict:
-        print("[NLP] Parsing JD sections...")
+        logger.debug("[NLP] Parsing JD sections...")
         segmented = self._segment_document(text)
         requirements_list = self.extract_job_requirements(text)
         requirements_text = "\n".join(requirements_list)
@@ -445,17 +454,23 @@ class NLPService:
         }
         if jd_skills:
             preview = ', '.join(jd_skills[:10])
-            print(f"[NLP] JD skills extracted: {preview}")
-        print(f"[NLP] JD sections parsed - Education: {result['education']['degree_level']}, Skills: {len(result['skills'])}, Experience: {result['experience']['years']} years, Requirements: {len(result['requirements'])}")
+            logger.debug("[NLP] JD skills extracted: %s", preview)
+        logger.debug(
+            "[NLP] JD sections parsed - Education: %s, Skills: %d, Experience: %.2f years, Requirements: %d",
+            result['education']['degree_level'],
+            len(result['skills']),
+            result['experience']['years'],
+            len(result['requirements'])
+        )
         return result
     
     def compute_embeddings(self, texts: List[str]) -> np.ndarray:
         if not self.model:
-            print("[NLP WARNING] Model not loaded, returning zero embeddings")
+            logger.warning("[NLP] Model not loaded, returning zero embeddings")
             return np.zeros((len(texts), 384))
-        print(f"[NLP] Computing embeddings for {len(texts)} text(s)...")
+        logger.debug("[NLP] Computing embeddings for %d text(s)...", len(texts))
         embeddings = self.model.encode(texts)
-        print(f"[NLP] Embeddings computed: shape {embeddings.shape}")
+        logger.debug("[NLP] Embeddings computed: shape %s", embeddings.shape)
         return embeddings
     
     def compute_similarity(self, text1: str, text2: str) -> float:

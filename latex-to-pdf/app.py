@@ -1,11 +1,14 @@
-from fastapi import FastAPI, UploadFile, File
-from fastapi.responses import FileResponse, PlainTextResponse
-import subprocess
-import tempfile
+import logging
 import os
 import shutil
+import subprocess
+import tempfile
+from fastapi import FastAPI, UploadFile, File
+from fastapi.responses import FileResponse, PlainTextResponse
 
 app = FastAPI()
+
+logger = logging.getLogger(__name__)
 
 
 @app.post("/convert")
@@ -32,8 +35,8 @@ async def convert(file: UploadFile = File(...)):
         with open(log_path, "wb") as f:
             f.write(result.stdout)
 
-        print("📁 Temp dir contents:", os.listdir(tmpdir))
-        print("📄 Return code:", result.returncode)
+        logger.debug("[LATEX] Temp dir contents: %s", os.listdir(tmpdir))
+        logger.debug("[LATEX] Return code: %s", result.returncode)
 
         if not os.path.exists(pdf_path):
             with open(log_path, "r", errors="ignore") as f:

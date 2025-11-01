@@ -1,16 +1,18 @@
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth import login, logout, authenticate
-from django.contrib.auth.decorators import login_required
-from django.contrib import messages
-from django.http import HttpResponse, JsonResponse, FileResponse
-from django.conf import settings
-from django.views.decorators.http import require_http_methods
-from django.db.models import Q
-from django.core.files.base import ContentFile
+import logging
 import json
 from datetime import datetime
-import PyPDF2
 import io
+
+import PyPDF2
+from django.conf import settings
+from django.contrib import messages
+from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.decorators import login_required
+from django.core.files.base import ContentFile
+from django.db.models import Q
+from django.http import FileResponse, HttpResponse, JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.http import require_http_methods
 
 from .models import User, Profile, Resume, JobDescription, MatchAttempt, AdminSettings, SystemLog
 from .forms import (
@@ -21,6 +23,9 @@ from .services.gemini_service import gemini_service
 from .services.latex_service import latex_service
 from .services.nlp_service import nlp_service
 from .services.scoring_service import scoring_service
+
+
+logger = logging.getLogger(__name__)
 
 
 def log_action(user, action_type, data=None, request=None):
@@ -467,17 +472,17 @@ def resume_latex_download(request, resume_id):
 
 @login_required
 def match_job(request):
-    # print(f"[MATCH VIEW] {request.method} request to /match/ by {request.user.email}")
+    logger.debug("[MATCH VIEW] %s request to /match/ by %s", request.method, request.user.email)
     profile = ensure_profile(request.user)
     resumes = request.user.resumes.order_by('-created_at')
     resumes_count = resumes.count()
     recent_matches = request.user.match_attempts.all()[:5]
     total_matches = request.user.match_attempts.count()
     upload_form = ResumeUploadForm()
-    # print(f"[MATCH VIEW] Resumes available: {resumes_count}")
+    logger.debug("[MATCH VIEW] Resumes available: %d", resumes_count)
     
     if request.method == 'POST':
-        # print(f"[MATCH POST] Keys received: {list(request.POST.keys())}")
+        logger.debug("[MATCH POST] Keys received: %s", list(request.POST.keys()))
         resume_mode = request.POST.get('resume_mode', 'existing')
         if resume_mode == 'upload':
             upload_form = ResumeUploadForm(request.POST, request.FILES)
@@ -491,15 +496,15 @@ def match_job(request):
         if resume_mode == 'existing':
             if not resume_id:
                 messages.error(request, 'Please select a resume to match against or switch to the upload option.')
-                # print('[MATCH POST] Missing resume_id; redirecting back to form')
+                logger.warning('[MATCH POST] Missing resume_id; redirecting back to form')
                 return redirect('match_job')
             resume = get_object_or_404(Resume, id=resume_id, user=request.user)
-            # print(f"[MATCH] Using saved resume: {resume.filename}")
+            logger.debug("[MATCH] Using saved resume: %s", resume.filename)
         else:
             if not upload_form.is_valid():
                 error_messages = upload_form.errors.get('resume_file') or ['Please upload a valid PDF resume.']
                 messages.error(request, error_messages[0])
-                # print(f"[MATCH POST] Upload form invalid: {error_messages}")
+                logger.warning("[MATCH POST] Upload form invalid: %s", error_messages)
                 return redirect('match_job')
 
             uploaded_file = upload_form.cleaned_data['resume_file']
@@ -509,12 +514,12 @@ def match_job(request):
                 extracted_text = ''.join((page.extract_text() or '') for page in pdf_reader.pages)
             except Exception as exc:
                 messages.error(request, 'Could not read the uploaded PDF. Please ensure it is not password-protected and try again.')
-                # print(f"[MATCH POST] PDF extraction failed: {exc}")
+                logger.exception("[MATCH POST] PDF extraction failed: %s", exc)
                 return redirect('match_job')
 
             if not extracted_text.strip():
                 messages.error(request, 'Unable to extract text from the uploaded PDF. Please upload a text-based resume (not a scanned image).')
-                # print('[MATCH POST] Uploaded PDF had no extractable text')
+                logger.warning('[MATCH POST] Uploaded PDF had no extractable text')
                 return redirect('match_job')
 
             parsed_sections = nlp_service.parse_resume_sections(extracted_text)
@@ -531,49 +536,48 @@ def match_job(request):
             resume.save()
 
             log_action(request.user, 'upload_resume', {'resume_id': resume.id, 'filename': uploaded_file.name}, request)
-            # print(f"[MATCH] Uploaded resume stored: {resume.filename} (ID: {resume.id})")
+            logger.info("[MATCH] Uploaded resume stored: %s (ID: %s)", resume.filename, resume.id)
         
         if not jd_text:
             messages.error(request, 'Provide a job description (pasted text) before analyzing. URL scraping is not yet implemented.')
-            # print('[MATCH POST] Missing job description text; redirecting back to form')
+            logger.warning('[MATCH POST] Missing job description text; redirecting back to form')
             return redirect('match_job')
         
-        # print(f"[MATCH START] Resume ID: {resume.id}, JD Title: {jd_title}, Company: {company}")
+        logger.debug("[MATCH START] Resume ID: %s, JD Title: %s, Company: %s", resume.id, jd_title, company)
         if job_url:
-            # print(f"[MATCH POST] Job URL provided: {job_url} (currently unused)")
-            pass
+            logger.debug("[MATCH POST] Job URL provided: %s (currently unused)", job_url)
         
         jd = JobDescription.objects.create(
             user=request.user,
             title=jd_title,
             raw_text=jd_text
         )
-        # print(f"[MATCH] JobDescription created: {jd.id}")
+        logger.info("[MATCH] JobDescription created: %s", jd.id)
         
-        # print("[MATCH] Parsing JD sections...")
+        logger.debug("[MATCH] Parsing JD sections...")
         jd_sections = nlp_service.parse_jd_sections(jd_text)
         if company:
             jd_sections['company'] = company
         jd.parsed_sections = jd_sections
         jd.save()
-        # print(f"[MATCH] JD sections parsed: {list(jd_sections.keys())}")
+        logger.debug("[MATCH] JD sections parsed: %s", list(jd_sections.keys()))
         
         resume_text = resume.parsed_text if resume.parsed_text else resume.latex_source or ''
         
         if not resume.parsed_sections:
-            # print("[MATCH] Parsing resume sections...")
+            logger.debug("[MATCH] Parsing resume sections...")
             resume.parsed_sections = nlp_service.parse_resume_sections(resume_text)
             resume.save()
-            # print(f"[MATCH] Resume sections parsed: {list(resume.parsed_sections.keys())}")
+            logger.debug("[MATCH] Resume sections parsed: %s", list(resume.parsed_sections.keys()))
         
-        # print("[MATCH] Computing match score (this may take a while)...")
+        logger.debug("[MATCH] Computing match score (this may take a while)...")
         match_result = scoring_service.compute_match_score(
             resume_text,
             jd_text,
             resume.parsed_sections,
             jd_sections
         )
-        # print(f"[MATCH] Match score computed: {match_result['final_score']}")
+        logger.info("[MATCH] Match score computed: %s", match_result['final_score'])
         
         match = MatchAttempt.objects.create(
             user=request.user,
@@ -587,14 +591,14 @@ def match_job(request):
             profession_match_flag=match_result['profession_match_flag'],
             profession_similarity=match_result['profession_similarity']
         )
-        # print(f"[MATCH COMPLETE] MatchAttempt created: {match.id}")
+        logger.info("[MATCH COMPLETE] MatchAttempt created: %s", match.id)
         
         log_action(request.user, 'match', {'match_id': match.id, 'score': match.final_score}, request)
         
         messages.success(request, 'Match analysis completed!')
         return redirect('match_result', match_id=match.id)
     
-    # print("[MATCH VIEW] Rendering match input page")
+    logger.debug("[MATCH VIEW] Rendering match input page")
     context = {
         'profile': profile,
         'resumes': resumes,

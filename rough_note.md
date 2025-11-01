@@ -1,5 +1,23 @@
 # Rough Notes - ATS Resume Checker Django Application
 
+## Latest Update (2025-11-01)
+**Profession mismatch scores now capped at 5%**:
+- `core/services/scoring_service.py`: If the AI reviewer still flags a profession mismatch, the final score is limited to 5%, the cap rationale is stored in the breakdown, and Gemini's reported final score is overridden so the UI reflects the capped value consistently.
+
+**Added automated retry flow for resume generation and LaTeX compilation**:
+- `core/views.py`: `generate_resume` now retries Gemini resume generation and LaTeX compilation up to three times, preserving the most recent LaTeX source and surfacing the final error if all retries fail.
+- Avoids requiring manual re-submission when Gemini outputs a non-compilable template.
+
+**All print/logging statements have been commented out** across the codebase for production deployment:
+- `core/license_check.py`: All LICENSE logs commented
+- `core/services/gemini_service.py`: All GEMINI logs commented
+- `core/services/nlp_service.py`: All NLP logs commented
+- `core/services/scoring_service.py`: All SCORING logs commented
+- `core/views.py`: All MATCH/MATCH VIEW/MATCH POST logs commented
+- `latex-to-pdf/app.py`: Temp dir and return code logs commented
+
+This ensures clean console output for production while preserving the logging infrastructure for future debugging needs (can be uncommented if needed).
+
 ## Goals
 - Build a Django web application with SQLite database
 - Allow users to register, create profile, generate LaTeX resume via Gemini API
