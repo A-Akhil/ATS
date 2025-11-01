@@ -2,6 +2,17 @@
 
 ## Latest Update (2025-11-01)
 
+**Job recommendations for low profession matches** (2025-11-01 15:45):
+- Added `get_suitable_job_recommendations()` to `core/services/gemini_service.py`
+- When profession similarity is below 50%, Gemini analyzes the candidate's complete profile
+- Returns 5 specific job titles with reasons and match percentages
+- Includes a career direction summary based on their actual skills/experience
+- Recommendations displayed in a prominent blue card **above AI Review** for better visibility
+- Complete profile data (education, skills, experience, projects, certifications) sent to Gemini
+- Helps candidates understand better career paths when applying for mismatched roles
+- **Removed "Profession Fit" section** from result page - redundant with job recommendations
+- Score Breakdown now takes full width for better readability
+
 **Logging configuration added** (2025-11-01 15:40):
 - Added comprehensive logging configuration to `ats_checker/settings.py`
 - Configured formatters: `verbose` (detailed) and `simple` (concise)

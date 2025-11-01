@@ -143,6 +143,20 @@ class ScoringService:
             gemini_correction = copy.deepcopy(gemini_correction)
         logger.debug("[SCORING] Gemini correction received: %s", gemini_correction is not None)
         
+        # Get job recommendations if profession similarity is low (below 50%)
+        job_recommendations = None
+        if profession_similarity < 0.5:
+            logger.info("[SCORING] Profession similarity %.2f < 0.5, requesting job recommendations...", profession_similarity)
+            job_recommendations = self.gemini.get_suitable_job_recommendations(
+                resume_sections,
+                jd_sections,
+                profession_similarity
+            )
+            if job_recommendations:
+                logger.debug("[SCORING] Received %d job recommendations", len(job_recommendations.get('recommendations', [])))
+            else:
+                logger.warning("[SCORING] Failed to get job recommendations")
+        
         mismatch_suggestion = 'This position requires experience in a different field. Consider applying to jobs that match your professional background.'
         default_suggestion = self._generate_default_suggestion(
             skills_breakdown, education_score, experience_score
@@ -245,6 +259,8 @@ class ScoringService:
             breakdown_details['message'] = profession_reason or mismatch_suggestion
         if mismatch_cap_applied:
             breakdown_details['mismatch_cap_applied'] = mismatch_cap
+        if job_recommendations:
+            breakdown_details['job_recommendations'] = job_recommendations
         
         bert_scores = {
             'education': round(education_score, 3),

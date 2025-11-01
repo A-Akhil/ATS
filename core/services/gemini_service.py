@@ -173,6 +173,87 @@ Return ONLY a valid JSON object:
         except Exception as e:
             logger.error("[GEMINI] Profession detection error: %s", e)
             return {"domain": "Other", "confidence": 0.5}
+    
+    def get_suitable_job_recommendations(self, resume_sections, jd_sections, profession_similarity):
+        """
+        Get job recommendations when profession similarity is low.
+        Returns a list of 5 suitable job roles based on candidate's profile.
+        """
+        logger.debug("[GEMINI] Getting job recommendations for low profession match...")
+        if not self.client:
+            logger.warning("[GEMINI] API client not configured")
+            return None
+        
+        prompt = f"""
+You are a career advisor AI. The candidate has applied for a job that doesn't match their professional background well (similarity: {profession_similarity:.2%}).
+
+Analyze their COMPLETE profile below and recommend 5 specific job roles/positions that would be a better fit based on their actual skills, education, and experience.
+
+COMPLETE CANDIDATE PROFILE:
+
+Education:
+{json.dumps(resume_sections.get('education', {}), indent=2)}
+
+Skills:
+{json.dumps(resume_sections.get('skills', []), indent=2)}
+
+Experience:
+{json.dumps(resume_sections.get('experience', []), indent=2)}
+
+Projects (if any):
+{json.dumps(resume_sections.get('projects', []), indent=2)}
+
+Certifications (if any):
+{json.dumps(resume_sections.get('certifications', []), indent=2)}
+
+JOB THEY APPLIED FOR (for context):
+- Required Education: {json.dumps(jd_sections.get('education', {}), indent=2)}
+- Required Skills: {json.dumps(jd_sections.get('skills', []), indent=2)}
+- Required Experience: {json.dumps(jd_sections.get('experience', {}), indent=2)}
+
+Provide 5 specific job titles/roles that match the candidate's profile better. For each recommendation:
+1. Job title should be specific and realistic
+2. Brief reason (1 sentence) explaining why this role fits their profile
+3. Match percentage estimate (how well they'd fit this role)
+
+Return your response ONLY as a valid JSON object with this exact structure:
+{{
+    "recommendations": [
+        {{
+            "job_title": "<specific job title>",
+            "reason": "<one sentence why this fits>",
+            "match_percentage": <integer 0-100>
+        }},
+        ... (5 total)
+    ],
+    "summary": "<2-3 sentence summary of their career direction based on their profile>"
+}}
+"""
+        
+        try:
+            logger.debug("[GEMINI] Sending job recommendation request to Gemini API...")
+            response = self.client.models.generate_content(
+                model='gemini-2.0-flash-001',
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    response_mime_type='application/json',
+                    temperature=0.3
+                )
+            )
+            logger.debug("[GEMINI] Job recommendations received from Gemini API")
+            response_text = response.text.strip()
+            
+            response_text = re.sub(r'^```json\s*', '', response_text)
+            response_text = re.sub(r'^```\s*', '', response_text)
+            response_text = re.sub(r'\s*```$', '', response_text)
+            response_text = response_text.strip()
+            
+            recommendations = json.loads(response_text)
+            logger.debug("[GEMINI] Parsed %d job recommendations", len(recommendations.get('recommendations', [])))
+            return recommendations
+        except Exception as e:
+            logger.error("[GEMINI] Job recommendation error: %s", e)
+            return None
 
 
 gemini_service = GeminiService()
