@@ -358,6 +358,12 @@ ats_checker/              # Django project
 - Added a profession mismatch override path in `scoring_service` so if at least half of the JD skills are matched we bypass the hard zeroing gate and surface the original composite score instead of 0.
 - Tweaked the partial-credit cap so when profession similarity is low but skill overlap ≥ 50% the cap increases by roughly 1.5x, letting strong functional matches climb above the old 30-point ceiling.
 
+### Gemini Scoring Adjustments (2025-11-01)
+- Updated the Gemini validator prompt to enforce a conservative rubric: meaningful scores above 0.6 (sections) or 50 (final) now require clear, comprehensive alignment, encouraging lower outputs for partial matches.
+- Reinforced reliance on Gemini’s final score when available, ensuring its stricter evaluation drives the reported match even if BERT scores higher.
+- Updated scoring flow so Gemini’s final score always overrides the BERT composite whenever a correction arrives, avoiding mixed messaging in the UI.
+- Separated baseline BERT composite from the displayed score; `bert_scores.final` now mirrors Gemini’s final output while the raw BERT total lives in `baseline_final` for diagnostics.
+
 ## Task Notes (2025-11-02)
 
 ### Goals

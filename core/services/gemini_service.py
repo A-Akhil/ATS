@@ -62,8 +62,10 @@ Make sure all special characters are properly escaped for LaTeX.
             return None
         
         prompt = f"""
-You are an expert ATS (Applicant Tracking System) validator. 
-Review the following BERT-based scores for a resume-job match and provide your assessment.
+You are an ATS (Applicant Tracking System) reviewer.
+Adopt a conservative, risk-averse stance: only award high section scores when the alignment is unequivocally strong.
+If there is any significant mismatch or missing evidence, prefer lower scores (0.0-0.4). Reserve scores above 0.6 for exceptional, comprehensive alignment.
+Final overall scores above 50 should be rare and only granted when skills, experience, and education all clearly match.
 
 Resume Sections:
 - Education: {json.dumps(resume_sections.get('education', {}), indent=2)}
@@ -86,7 +88,7 @@ Please provide:
 2. Whether the profession truly mismatches (boolean) and a brief rationale when true
 3. A concise resume review (2-3 sentences) explaining how the candidate can improve against this job description; avoid any mention of underlying model names or BERT scores
 4. One short actionable tip the candidate can implement immediately
-5. Final recommended score (0-100 scale)
+5. Final recommended score (0-100 scale). Always ground the final score in your conservative rubric; err on the side of lower marks when uncertain.
 
 Return your response ONLY as a valid JSON object with this exact structure:
 {{

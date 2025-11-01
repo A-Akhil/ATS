@@ -83,6 +83,7 @@ class ScoringService:
         )
         
         bert_final_score = raw_bert_score * 100
+        bert_baseline_final = bert_final_score
         capped = False
         
         if initial_profession_mismatch:
@@ -96,7 +97,7 @@ class ScoringService:
             bert_final_score = min(bert_final_score, dynamic_cap)
             capped = True
         
-        bert_scores = {
+        bert_scores_for_prompt = {
             'education': round(education_score, 3),
             'skills': round(skills_score, 3),
             'experience': round(experience_score, 3),
@@ -108,7 +109,7 @@ class ScoringService:
         gemini_correction = self.gemini.validate_match_scores(
             resume_sections,
             jd_sections,
-            bert_scores,
+            bert_scores_for_prompt,
             profession_similarity
         )
         print(f"[SCORING] Gemini correction received: {gemini_correction is not None}")
@@ -165,7 +166,7 @@ class ScoringService:
 
         if not final_profession_mismatch and suggestion_text == mismatch_suggestion:
             suggestion_text = default_suggestion
-        
+
         if final_profession_mismatch and not profession_reason:
             profession_reason = mismatch_suggestion
         elif not final_profession_mismatch and profession_reason is None and initial_profession_flagged:
@@ -187,6 +188,7 @@ class ScoringService:
                 'skills': settings.weight_skills,
                 'experience': settings.weight_experience
             },
+            'bert_baseline_final': round(bert_baseline_final, 2),
             'profession_mismatch': final_profession_mismatch,
             'initial_profession_mismatch': initial_profession_flagged,
             'profession_reason': profession_reason,
@@ -198,6 +200,14 @@ class ScoringService:
         if final_profession_mismatch:
             breakdown_details['message'] = profession_reason or mismatch_suggestion
         
+        bert_scores = {
+            'education': round(education_score, 3),
+            'skills': round(skills_score, 3),
+            'experience': round(experience_score, 3),
+            'final': round(final_score, 2),
+            'baseline_final': round(bert_baseline_final, 2)
+        }
+
         result = {
             'bert_scores': bert_scores,
             'profession_similarity': round(profession_similarity, 3),
