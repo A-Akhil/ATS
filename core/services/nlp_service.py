@@ -283,7 +283,7 @@ class NLPService:
             'aws', 'azure', 'gcp', 'docker', 'kubernetes', 'jenkins', 'git', 'github', 'gitlab',
             'machine learning', 'deep learning', 'nlp', 'computer vision', 'data science',
             'tensorflow', 'pytorch', 'keras', 'scikit learn', 'pandas', 'numpy',
-            'html', 'css', 'sass', 'bootstrap', 'tailwind', 'typescript', 'go', 'rust', 'linux',
+            'html', 'css', 'sass', 'bootstrap', 'tailwind', 'typescript', 'golang', 'rust', 'linux',
             'rest api', 'graphql', 'microservices', 'agile', 'scrum', 'devops',
             'leadership', 'communication', 'problem solving', 'teamwork', 'project management'
         ]

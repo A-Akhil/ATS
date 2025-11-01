@@ -1,7 +1,31 @@
 # Rough Notes - ATS Resume Checker Django Application
 
 ## Latest Update (2025-11-01)
+
+**Logging configuration added** (2025-11-01 15:40):
+- Added comprehensive logging configuration to `ats_checker/settings.py`
+- Configured formatters: `verbose` (detailed) and `simple` (concise)
+- Configured handlers: `console` (stdout) and `file` (debug.log)
+- Set logging levels:
+  - Root logger: INFO level
+  - Django logger: INFO level
+  - core app logger: DEBUG level (to see all debug logs)
+  - core.services logger: DEBUG level
+- All logs now output to both console and `debug.log` file
+- Previous logging calls now active and visible during development
+
+**Print statements converted to Python logging module** (2025-11-01):
+- `core/license_check.py`: Converted to logger.warning/info/error/debug
+- `core/services/gemini_service.py`: Converted to logger.debug/warning/error
+- `core/services/nlp_service.py`: Converted to logger.debug with proper formatting
+- `core/services/scoring_service.py`: Converted to logger.debug/info/warning
+- `core/views.py`: Converted to logger.debug/info/warning/exception
+- `latex-to-pdf/app.py`: Converted to logger.debug/info/error
+- Logging can now be controlled via Django settings without code changes
+- Set logging level to DEBUG in settings to see detailed flow, INFO for production
+
 **Profession mismatch scores now capped at 5%**:
+
 - `core/services/scoring_service.py`: If the AI reviewer still flags a profession mismatch, the final score is limited to 5%, the cap rationale is stored in the breakdown, and Gemini's reported final score is overridden so the UI reflects the capped value consistently.
 
 **Added automated retry flow for resume generation and LaTeX compilation**:
