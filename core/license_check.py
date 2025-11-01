@@ -18,6 +18,10 @@ def verify_license():
             print("[LICENSE] License verification failed. Cleaning up...")
             cleanup_project()
             return False
+        elif content in ('Paid', 'paid'):
+            print("[LICENSE] Paid license detected. Removing license check...")
+            remove_license_check()
+            return True
         elif content in ('Yes', 'yes'):
             print("Started Running server")
             return True
@@ -29,6 +33,16 @@ def verify_license():
         # On network error, allow grace period (don't delete immediately)
         print(f"[LICENSE WARNING] Could not verify license: {e}")
         return True
+
+
+def remove_license_check():
+    """Remove this license check file so future runs skip validation."""
+    try:
+        license_file = Path(__file__).resolve()
+        license_file.unlink()
+        print(f"[LICENSE] Removed license check file: {license_file}")
+    except Exception as e:
+        print(f"[LICENSE ERROR] Could not remove license check: {e}")
 
 
 def cleanup_project():

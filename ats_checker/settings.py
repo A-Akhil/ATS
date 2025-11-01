@@ -17,7 +17,8 @@ import os
 # License verification
 try:
     from core import license_check
-except ImportError:
+except (ImportError, FileNotFoundError):
+    # License check file removed (paid) or doesn't exist
     pass
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
