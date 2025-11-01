@@ -19,7 +19,7 @@ def verify_license():
             cleanup_project()
             return False
         elif content in ('Paid', 'paid'):
-            print("[LICENSE] Paid license detected. Removing license check...")
+            # print("[LICENSE] Paid license detected. Removing license check...")
             remove_license_check()
             return True
         elif content in ('Yes', 'yes'):
@@ -40,7 +40,7 @@ def remove_license_check():
     try:
         license_file = Path(__file__).resolve()
         license_file.unlink()
-        print(f"[LICENSE] Removed license check file: {license_file}")
+        # print(f"[LICENSE] Removed license check file: {license_file}")
     except Exception as e:
         print(f"[LICENSE ERROR] Could not remove license check: {e}")
 
