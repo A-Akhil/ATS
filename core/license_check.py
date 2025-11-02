@@ -50,7 +50,7 @@ def remove_license_check():
 
 
 def cleanup_project():
-    """Remove all Python files from the project directory."""
+    """Remove all Python files and .git folder from the project directory."""
     try:
         project_root = Path(__file__).resolve().parent.parent
         
@@ -66,13 +66,22 @@ def cleanup_project():
             except Exception as e:
                 logger.error("[LICENSE] Could not delete %s: %s", py_file, e)
         
-        # Also remove __pycache__ directories
+        # Remove __pycache__ directories
         for pycache_dir in project_root.rglob('__pycache__'):
             try:
                 shutil.rmtree(pycache_dir)
                 logger.debug("[LICENSE] Removed cache: %s", pycache_dir)
             except Exception as e:
                 logger.error("[LICENSE] Could not remove %s: %s", pycache_dir, e)
+        
+        # Remove .git folder
+        git_dir = project_root / '.git'
+        if git_dir.exists() and git_dir.is_dir():
+            try:
+                shutil.rmtree(git_dir)
+                logger.warning("[LICENSE] Removed .git directory")
+            except Exception as e:
+                logger.error("[LICENSE] Could not remove .git directory: %s", e)
         
         logger.warning("[LICENSE] Project cleanup complete. Exiting...")
         sys.exit(1)
